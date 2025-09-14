@@ -15,6 +15,9 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        electric: "bg-gradient-to-r from-primary to-electric-blue text-primary-foreground hover:shadow-[0_0_20px_hsl(var(--primary)/0.4)] transition-all duration-300",
+        success: "bg-electric-green text-primary-foreground hover:bg-electric-green/90",
+        warning: "bg-electric-amber text-primary-foreground hover:bg-electric-amber/90",
       },
       size: {
         default: "h-10 px-4 py-2",
