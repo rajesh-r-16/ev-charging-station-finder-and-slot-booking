@@ -14,7 +14,175 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          slot_number: number
+          start_time: string
+          station_id: string
+          status: string
+          total_amount: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          slot_number: number
+          start_time: string
+          station_id: string
+          status?: string
+          total_amount: number
+          total_hours: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          slot_number?: number
+          start_time?: string
+          station_id?: string
+          status?: string
+          total_amount?: number
+          total_hours?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "charging_stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charging_stations: {
+        Row: {
+          address: string
+          amenities: string[] | null
+          available_slots: number
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          price_per_hour: number
+          total_slots: number
+        }
+        Insert: {
+          address: string
+          amenities?: string[] | null
+          available_slots?: number
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          price_per_hour: number
+          total_slots?: number
+        }
+        Update: {
+          address?: string
+          amenities?: string[] | null
+          available_slots?: number
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          price_per_hour?: number
+          total_slots?: number
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          id: string
+          payment_date: string
+          payment_method: string
+          payment_status: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string
+          id?: string
+          payment_date?: string
+          payment_method: string
+          payment_status?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          id?: string
+          payment_date?: string
+          payment_method?: string
+          payment_status?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+          vehicle_model: string | null
+          vehicle_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_model?: string | null
+          vehicle_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_model?: string | null
+          vehicle_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
