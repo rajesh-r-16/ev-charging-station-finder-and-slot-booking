@@ -1,13 +1,17 @@
 import HeroSection from "@/components/HeroSection";
-import ChargingStationMap from "@/components/ChargingStationMap";
-import BookingInterface from "@/components/BookingInterface";
+import EnhancedChargingStationMap from "@/components/EnhancedChargingStationMap";
+import EnhancedBookingInterface from "@/components/EnhancedBookingInterface";
+import ReviewsAndRatings from "@/components/ReviewsAndRatings";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <HeroSection />
-      <ChargingStationMap />
-      <BookingInterface />
+      <EnhancedChargingStationMap />
+      <div id="booking-section">
+        <EnhancedBookingInterface />
+      </div>
+      <ReviewsAndRatings />
     </div>
   );
 };
