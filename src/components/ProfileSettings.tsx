@@ -14,6 +14,8 @@ interface ProfileData {
   phone: string;
   vehicle_model: string;
   vehicle_number: string;
+  email_verified: boolean;
+  verified_at: string | null;
 }
 
 const ProfileSettings = () => {
@@ -23,7 +25,9 @@ const ProfileSettings = () => {
     email: '',
     phone: '',
     vehicle_model: '',
-    vehicle_number: ''
+    vehicle_number: '',
+    email_verified: false,
+    verified_at: null
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,7 +57,9 @@ const ProfileSettings = () => {
           email: data.email || user?.email || '',
           phone: data.phone || '',
           vehicle_model: data.vehicle_model || '',
-          vehicle_number: data.vehicle_number || ''
+          vehicle_number: data.vehicle_number || '',
+          email_verified: data.email_verified || false,
+          verified_at: data.verified_at
         });
       } else {
         setProfile(prev => ({
@@ -127,6 +133,17 @@ const ProfileSettings = () => {
           <User className="h-5 w-5 text-primary" />
           Profile Settings
         </CardTitle>
+        {profile.email_verified ? (
+          <div className="flex items-center gap-2 text-sm text-green-600">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            Email verified {profile.verified_at && `on ${new Date(profile.verified_at).toLocaleDateString()}`}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-warning">
+            <div className="w-2 h-2 bg-warning rounded-full"></div>
+            Email verification pending
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">

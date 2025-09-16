@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, MapPin, Clock, CreditCard, Activity, Car, Zap, DollarSign } from 'lucide-react';
+import { User, MapPin, Clock, CreditCard, Activity, Car, Zap, DollarSign, Mail } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import ProfileSettings from '@/components/ProfileSettings';
 import BookingHistory from '@/components/BookingHistory';
@@ -18,6 +18,13 @@ interface DashboardStats {
   favoriteStation: string;
 }
 
+interface UserProfile {
+  email_verified: boolean;
+  verification_token: string;
+  verified_at: string;
+  full_name: string;
+}
+
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
@@ -26,6 +33,7 @@ const Dashboard = () => {
     totalSpent: 0,
     favoriteStation: 'No bookings yet'
   });
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +45,19 @@ const Dashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
+      
+      // Fetch user profile with verification status
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email_verified, verification_token, verified_at, full_name')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.warn('Profile not found, user might need to sign up again');
+      } else if (profileData) {
+        setProfile(profileData);
+      }
       
       // Fetch booking stats
       const { data: bookings, error: bookingsError } = await supabase
@@ -124,6 +145,49 @@ const Dashboard = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
+        {/* Verification Status */}
+        {profile && !profile.email_verified && (
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-warning/10 to-warning/5 border-warning/20 mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-warning/20 rounded-full">
+                  <User className="h-6 w-6 text-warning" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-warning">Account Verification Required</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Please verify your email address to access all features.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30">
+                  Unverified
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {profile?.email_verified && (
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-green-500/10 to-green-500/5 border-green-500/20 mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-500/20 rounded-full">
+                  <User className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-600">Account Verified</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your account is verified and ready to use.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="bg-green-500/20 text-green-600 border-green-500/30">
+                  Verified ✓
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -171,8 +235,12 @@ const Dashboard = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="activity" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
+        <Tabs defaultValue="verification" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
+            <TabsTrigger value="verification" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Verification
+            </TabsTrigger>
             <TabsTrigger value="activity" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Activity
@@ -190,6 +258,87 @@ const Dashboard = () => {
               Profile
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="verification" className="space-y-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Account Verification Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">Email Verification</p>
+                          <p className="text-sm text-muted-foreground">{user?.email}</p>
+                        </div>
+                      </div>
+                      {profile?.email_verified ? (
+                        <Badge variant="secondary" className="bg-green-500/20 text-green-600 border-green-500/30">
+                          Verified ✓
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30">
+                          Pending
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">Profile Completion</p>
+                          <p className="text-sm text-muted-foreground">Basic profile information</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-600 border-green-500/30">
+                        Complete ✓
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Verification Benefits</h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        Access to all charging stations
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        Priority booking support
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        Payment history and receipts
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        Account security features
+                      </li>
+                    </ul>
+
+                    {!profile?.email_verified && (
+                      <div className="mt-4 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+                        <p className="text-sm text-warning mb-2">
+                          <strong>Action Required:</strong> Please check your email and click the verification link.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          If you haven't received the email, check your spam folder or contact support.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">
             <Card className="border-0 shadow-lg">

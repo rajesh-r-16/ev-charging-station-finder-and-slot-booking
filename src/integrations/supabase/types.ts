@@ -151,6 +151,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          email_verified: boolean | null
           full_name: string | null
           id: string
           phone: string | null
@@ -158,10 +159,13 @@ export type Database = {
           user_id: string
           vehicle_model: string | null
           vehicle_number: string | null
+          verification_token: string | null
+          verified_at: string | null
         }
         Insert: {
           created_at?: string
           email?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -169,10 +173,13 @@ export type Database = {
           user_id: string
           vehicle_model?: string | null
           vehicle_number?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
         }
         Update: {
           created_at?: string
           email?: string | null
+          email_verified?: boolean | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -180,6 +187,8 @@ export type Database = {
           user_id?: string
           vehicle_model?: string | null
           vehicle_number?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
         }
         Relationships: []
       }
