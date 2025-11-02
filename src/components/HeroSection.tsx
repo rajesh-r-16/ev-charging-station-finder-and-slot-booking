@@ -84,8 +84,8 @@ const HeroSection = () => {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mb-8">
-          <h1 className="text-6xl md:text-8xl font-extrabold mb-6">
-            <span className="bg-gradient-to-r from-primary via-electric-blue to-electric-green bg-clip-text text-transparent drop-shadow-2xl" style={{ WebkitTextStroke: '1px rgba(var(--primary), 0.1)' }}>
+          <h1 className="text-5xl md:text-7xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-primary via-electric-blue to-electric-green bg-clip-text text-transparent">
               Charge
             </span>
             <br />
