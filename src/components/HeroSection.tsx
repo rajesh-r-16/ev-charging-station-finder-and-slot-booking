@@ -23,23 +23,8 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Sign Up Ribbon */}
-      <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-r from-primary via-electric-blue to-electric-green py-2 px-4">
-        <div className="container mx-auto flex items-center justify-center gap-3 text-primary-foreground">
-          <span className="text-sm font-medium">Start charging smarter today!</span>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/auth')}
-            className="bg-white/90 text-primary hover:bg-white border-0 h-7 text-xs px-3 font-semibold"
-          >
-            Sign Up Free
-          </Button>
-        </div>
-      </div>
-
       {/* Navigation Header */}
-      <header className="absolute top-8 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b">
+      <header className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
