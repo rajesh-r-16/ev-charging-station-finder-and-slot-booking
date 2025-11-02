@@ -23,49 +23,53 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Top Banner with Auth Buttons */}
+      <div className="absolute top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b py-2 px-4">
+        <div className="container mx-auto flex items-center justify-end gap-3">
+          {user ? (
+            <>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2"
+              >
+                <User className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="electric" 
+                size="sm"
+                onClick={() => navigate('/auth')}
+                className="flex items-center gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/auth')}
+              >
+                Get Started
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Navigation Header */}
-      <header className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="absolute top-12 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-center">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
             <span className="text-lg font-bold">EVCharger</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {user ? (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Dashboard
-                </Button>
-                <Button variant="outline" size="sm" onClick={signOut}>
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button 
-                  variant="electric" 
-                  size="sm"
-                  onClick={() => navigate('/auth')}
-                  className="flex items-center gap-2"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Sign In
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/auth')}
-                >
-                  Get Started
-                </Button>
-              </>
-            )}
           </div>
         </div>
       </header>
