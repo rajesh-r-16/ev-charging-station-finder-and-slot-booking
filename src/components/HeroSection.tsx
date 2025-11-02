@@ -24,7 +24,7 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Top Header with Logo and Auth Buttons */}
-      <header className="absolute top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b py-2 px-4">
+      <header className="absolute top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b py-1.5 px-4">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
