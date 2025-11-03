@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import ProfileSettings from '@/components/ProfileSettings';
 import BookingHistory from '@/components/BookingHistory';
 import PaymentHistory from '@/components/PaymentHistory';
+import V2VFeature from '@/components/V2VFeature';
+import V2GFeature from '@/components/V2GFeature';
 
 interface DashboardStats {
   totalBookings: number;
@@ -236,7 +238,7 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="verification" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
             <TabsTrigger value="verification" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Verification
@@ -252,6 +254,14 @@ const Dashboard = () => {
             <TabsTrigger value="payments" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               Payments
+            </TabsTrigger>
+            <TabsTrigger value="v2v" className="flex items-center gap-2">
+              <Car className="h-4 w-4" />
+              V2V
+            </TabsTrigger>
+            <TabsTrigger value="v2g" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              V2G
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -383,6 +393,14 @@ const Dashboard = () => {
 
           <TabsContent value="payments">
             <PaymentHistory />
+          </TabsContent>
+
+          <TabsContent value="v2v">
+            <V2VFeature />
+          </TabsContent>
+
+          <TabsContent value="v2g">
+            <V2GFeature />
           </TabsContent>
 
           <TabsContent value="profile">
