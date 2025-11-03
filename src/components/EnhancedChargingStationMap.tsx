@@ -85,9 +85,9 @@ const EnhancedChargingStationMap = () => {
       filtered = filtered.filter(station => {
         const price = station.price_per_hour;
         switch (priceFilter) {
-          case "low": return price < 0.30;
-          case "medium": return price >= 0.30 && price < 0.40;
-          case "high": return price >= 0.40;
+          case "low": return price < 100;
+          case "medium": return price >= 100 && price < 150;
+          case "high": return price >= 150;
           default: return true;
         }
       });
@@ -203,10 +203,10 @@ const EnhancedChargingStationMap = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="low">Under $0.30/hr</SelectItem>
-                    <SelectItem value="medium">$0.30 - $0.40/hr</SelectItem>
-                    <SelectItem value="high">Over $0.40/hr</SelectItem>
+                  <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="low">Under ₹100/hr</SelectItem>
+                    <SelectItem value="medium">₹100 - ₹150/hr</SelectItem>
+                    <SelectItem value="high">Over ₹150/hr</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -386,7 +386,7 @@ const EnhancedChargingStationMap = () => {
                       </div>
                       <div className="text-center p-3 bg-secondary/50 rounded-lg">
                         <div className="text-lg font-semibold text-electric-green">
-                          ${station.price_per_hour}/hr
+                          ₹{station.price_per_hour}/hr
                         </div>
                         <div className="text-xs text-muted-foreground">Pricing</div>
                       </div>
