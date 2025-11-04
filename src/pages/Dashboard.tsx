@@ -12,6 +12,10 @@ import BookingHistory from '@/components/BookingHistory';
 import PaymentHistory from '@/components/PaymentHistory';
 import V2VFeature from '@/components/V2VFeature';
 import V2GFeature from '@/components/V2GFeature';
+import RoutePlanner from '@/components/RoutePlanner';
+import CarbonTracker from '@/components/CarbonTracker';
+import EnhancedV2VMarketplace from '@/components/EnhancedV2VMarketplace';
+import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 
 interface DashboardStats {
   totalBookings: number;
@@ -238,7 +242,7 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="verification" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
+          <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:grid-cols-10">
             <TabsTrigger value="verification" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Verification
@@ -255,6 +259,14 @@ const Dashboard = () => {
               <CreditCard className="h-4 w-4" />
               Payments
             </TabsTrigger>
+            <TabsTrigger value="route" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Route
+            </TabsTrigger>
+            <TabsTrigger value="carbon" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Carbon
+            </TabsTrigger>
             <TabsTrigger value="v2v" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
               V2V
@@ -262,6 +274,10 @@ const Dashboard = () => {
             <TabsTrigger value="v2g" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
               V2G
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Analytics
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -395,12 +411,24 @@ const Dashboard = () => {
             <PaymentHistory />
           </TabsContent>
 
+          <TabsContent value="route">
+            <RoutePlanner />
+          </TabsContent>
+
+          <TabsContent value="carbon">
+            <CarbonTracker />
+          </TabsContent>
+
           <TabsContent value="v2v">
-            <V2VFeature />
+            <EnhancedV2VMarketplace />
           </TabsContent>
 
           <TabsContent value="v2g">
             <V2GFeature />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="profile">
