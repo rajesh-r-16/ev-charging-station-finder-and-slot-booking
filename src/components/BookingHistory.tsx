@@ -198,7 +198,7 @@ const BookingHistory = () => {
 
                     <div className="flex items-center gap-2 text-sm">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">${booking.total_amount}</span>
+                      <span className="font-medium">₹{booking.total_amount}</span>
                     </div>
                   </div>
                 </CardContent>

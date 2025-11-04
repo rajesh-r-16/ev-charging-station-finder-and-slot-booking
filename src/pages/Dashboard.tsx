@@ -135,6 +135,26 @@ const Dashboard = () => {
       <header className="border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.history.back()}
+              className="mr-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </Button>
             <div className="p-2 bg-primary/10 rounded-lg">
               <Zap className="h-6 w-6 text-primary" />
             </div>
@@ -223,7 +243,7 @@ const Dashboard = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">${stats.totalSpent.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-green-600">₹{stats.totalSpent.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">Lifetime spending</p>
             </CardContent>
           </Card>

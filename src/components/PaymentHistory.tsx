@@ -111,7 +111,7 @@ const PaymentHistory = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">${totalSpent.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-primary">₹{totalSpent.toFixed(2)}</div>
               <p className="text-sm text-muted-foreground">Total Spent</p>
             </div>
             <div className="text-center">
@@ -161,7 +161,7 @@ const PaymentHistory = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold">${payment.amount}</div>
+                        <div className="text-lg font-bold">₹{payment.amount}</div>
                         <Badge variant={getStatusColor(payment.payment_status)}>
                           {payment.payment_status.charAt(0).toUpperCase() + payment.payment_status.slice(1)}
                         </Badge>
