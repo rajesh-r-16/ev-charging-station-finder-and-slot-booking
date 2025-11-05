@@ -129,7 +129,13 @@ const HeroSection = () => {
 
         {/* Feature highlights */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <div className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50">
+          <div 
+            className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 cursor-pointer hover:bg-card/70 transition-all hover:scale-105"
+            onClick={() => {
+              const mapSection = document.querySelector('#booking-section')?.previousElementSibling;
+              mapSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-electric-blue flex items-center justify-center mb-4">
               <MapPin className="h-8 w-8 text-primary-foreground" />
             </div>
@@ -139,7 +145,13 @@ const HeroSection = () => {
             </p>
           </div>
 
-          <div className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50">
+          <div 
+            className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 cursor-pointer hover:bg-card/70 transition-all hover:scale-105"
+            onClick={() => {
+              const mapSection = document.querySelector('#booking-section')?.previousElementSibling;
+              mapSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-electric-green to-electric-amber flex items-center justify-center mb-4">
               <Zap className="h-8 w-8 text-primary-foreground" />
             </div>
@@ -149,7 +161,12 @@ const HeroSection = () => {
             </p>
           </div>
 
-          <div className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50">
+          <div 
+            className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 cursor-pointer hover:bg-card/70 transition-all hover:scale-105"
+            onClick={() => {
+              document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-electric-blue to-primary flex items-center justify-center mb-4">
               <Clock className="h-8 w-8 text-primary-foreground" />
             </div>
