@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Navigation, Filter, Zap, Clock, Star, Search, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { useToast } from "@/hooks/use-toast";
 
 interface Station {
   id: string;
@@ -20,19 +22,39 @@ interface Station {
   amenities: string[] | null;
 }
 
+interface UserLocation {
+  lat: number;
+  lng: number;
+}
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '600px'
+};
+
+const defaultCenter = {
+  lat: 28.6139, // Delhi coordinates as default
+  lng: 77.2090
+};
+
 const EnhancedChargingStationMap = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [stations, setStations] = useState<Station[]>([]);
   const [filteredStations, setFilteredStations] = useState<Station[]>([]);
-  const [selectedStation, setSelectedStation] = useState<number | null>(null);
+  const [selectedStation, setSelectedStation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [priceFilter, setPriceFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("distance");
   const [showFilters, setShowFilters] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [mapCenter, setMapCenter] = useState(defaultCenter);
+  const [infoWindowStation, setInfoWindowStation] = useState<Station | null>(null);
 
   useEffect(() => {
     fetchStations();
+    getUserLocation();
     
     // Set up real-time subscription for station updates
     const channel = supabase
@@ -53,7 +75,34 @@ const EnhancedChargingStationMap = () => {
 
   useEffect(() => {
     filterAndSortStations();
-  }, [stations, searchQuery, priceFilter, availabilityFilter, sortBy]);
+  }, [stations, searchQuery, priceFilter, availabilityFilter, sortBy, userLocation]);
+
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(location);
+          setMapCenter(location);
+          toast({
+            title: "Location found",
+            description: "Showing nearby charging stations",
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast({
+            title: "Location unavailable",
+            description: "Using default location. Please enable location services.",
+            variant: "destructive"
+          });
+        }
+      );
+    }
+  };
 
   const fetchStations = async () => {
     const { data, error } = await supabase
@@ -67,6 +116,29 @@ const EnhancedChargingStationMap = () => {
     }
     
     setStations(data || []);
+  };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    // Haversine formula for distance calculation
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const getStationDistance = (station: Station): number => {
+    if (!userLocation) return 0;
+    return calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      station.latitude,
+      station.longitude
+    );
   };
 
   const filterAndSortStations = () => {
@@ -108,6 +180,9 @@ const EnhancedChargingStationMap = () => {
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case "distance":
+          if (!userLocation) return 0;
+          return getStationDistance(a) - getStationDistance(b);
         case "price-low":
           return a.price_per_hour - b.price_per_hour;
         case "price-high":
@@ -116,7 +191,7 @@ const EnhancedChargingStationMap = () => {
           return b.available_slots - a.available_slots;
         case "name":
           return a.name.localeCompare(b.name);
-        default: // distance - mock implementation
+        default:
           return 0;
       }
     });
@@ -136,24 +211,26 @@ const EnhancedChargingStationMap = () => {
     return "Available";
   };
 
-  const calculateDistance = (lat: number, lng: number) => {
-    // Mock distance calculation - in real app, use user's location
-    return (Math.random() * 5 + 0.1).toFixed(1);
-  };
-
   const handleReserve = (stationId: string) => {
     if (!user) {
       window.location.href = '/auth';
       return;
     }
-    // Navigate to booking interface with selected station
     const element = document.getElementById('booking-section');
     element?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleNavigate = (station: Station) => {
-    // In a real app, this would open maps with navigation
     window.open(`https://maps.google.com/maps?q=${station.latitude},${station.longitude}`, '_blank');
+  };
+
+  const getMarkerIcon = (station: Station) => {
+    if (station.available_slots === 0) {
+      return 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+    } else if (station.available_slots <= 2) {
+      return 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+    }
+    return 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
   };
 
   return (
@@ -171,7 +248,6 @@ const EnhancedChargingStationMap = () => {
         {/* Search and Filters */}
         <Card className="p-6 mb-8 bg-card/50 backdrop-blur-sm border border-border/50">
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -182,7 +258,6 @@ const EnhancedChargingStationMap = () => {
               />
             </div>
 
-            {/* Filter Toggle */}
             <Button
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
@@ -193,7 +268,6 @@ const EnhancedChargingStationMap = () => {
             </Button>
           </div>
 
-          {/* Expanded Filters */}
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
               <div>
@@ -203,7 +277,7 @@ const EnhancedChargingStationMap = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="all">All Prices</SelectItem>
                     <SelectItem value="low">Under ₹100/hr</SelectItem>
                     <SelectItem value="medium">₹100 - ₹150/hr</SelectItem>
                     <SelectItem value="high">Over ₹150/hr</SelectItem>
@@ -244,7 +318,7 @@ const EnhancedChargingStationMap = () => {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Location</label>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={getUserLocation}>
                   <Navigation className="h-4 w-4 mr-2" />
                   Use My Location
                 </Button>
@@ -254,59 +328,77 @@ const EnhancedChargingStationMap = () => {
         </Card>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Interactive Map */}
+          {/* Google Map */}
           <div className="relative">
-            <Card className="h-[600px] bg-card/50 backdrop-blur-sm border border-border/50 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-electric-blue/5 to-electric-green/5" />
-              
-              {/* Map controls */}
-              <div className="absolute top-4 left-4 right-4 z-10 flex justify-between">
-                <Badge variant="secondary" className="px-3 py-1">
-                  {filteredStations.length} stations found
-                </Badge>
-                <div className="flex gap-2">
-                  <Button variant="secondary" size="sm">
-                    <Navigation className="h-4 w-4 mr-2" />
-                    My Location
-                  </Button>
-                  <Button variant="secondary" size="sm">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Map Filter
-                  </Button>
-                </div>
-              </div>
-
-              {/* Interactive map area */}
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <MapPin className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
-                  <p className="text-lg font-medium mb-2">Interactive Map</p>
-                  <p className="text-muted-foreground mb-4">
-                    Real-time charging station locations
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Badge variant="default" className="text-xs">Available</Badge>
-                    <Badge variant="warning" className="text-xs">Limited</Badge>
-                    <Badge variant="destructive" className="text-xs">Full</Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Map markers simulation */}
-              {filteredStations.slice(0, 5).map((station, index) => (
-                <div 
-                  key={station.id}
-                  className={`absolute w-4 h-4 rounded-full animate-ping cursor-pointer ${
-                    station.available_slots > 0 ? 'bg-electric-green' : 'bg-destructive'
-                  }`}
-                  style={{
-                    top: `${20 + index * 15}%`,
-                    left: `${30 + (index % 3) * 20}%`,
-                    animationDelay: `${index * 200}ms`
+            <Card className="h-[600px] bg-card/50 backdrop-blur-sm border border-border/50 overflow-hidden p-0">
+              <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={mapCenter}
+                  zoom={12}
+                  options={{
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                    fullscreenControl: false,
                   }}
-                  onClick={() => setSelectedStation(selectedStation === parseInt(station.id) ? null : parseInt(station.id))}
-                />
-              ))}
+                >
+                  {/* User location marker */}
+                  {userLocation && (
+                    <Marker
+                      position={userLocation}
+                      icon={{
+                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                      }}
+                      title="Your Location"
+                    />
+                  )}
+
+                  {/* Station markers */}
+                  {filteredStations.map((station) => (
+                    <Marker
+                      key={station.id}
+                      position={{ lat: station.latitude, lng: station.longitude }}
+                      icon={{
+                        url: getMarkerIcon(station)
+                      }}
+                      onClick={() => setInfoWindowStation(station)}
+                      title={station.name}
+                    />
+                  ))}
+
+                  {/* Info Window */}
+                  {infoWindowStation && (
+                    <InfoWindow
+                      position={{
+                        lat: infoWindowStation.latitude,
+                        lng: infoWindowStation.longitude
+                      }}
+                      onCloseClick={() => setInfoWindowStation(null)}
+                    >
+                      <div className="p-2">
+                        <h3 className="font-semibold text-sm mb-1">{infoWindowStation.name}</h3>
+                        <p className="text-xs text-gray-600 mb-2">{infoWindowStation.address}</p>
+                        <div className="flex gap-2 text-xs mb-2">
+                          <span className="font-medium">
+                            {infoWindowStation.available_slots}/{infoWindowStation.total_slots} Available
+                          </span>
+                          <span>₹{infoWindowStation.price_per_hour}/hr</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={() => {
+                            setSelectedStation(infoWindowStation.id);
+                            setInfoWindowStation(null);
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </InfoWindow>
+                  )}
+                </GoogleMap>
+              </LoadScript>
             </Card>
           </div>
 
@@ -342,11 +434,14 @@ const EnhancedChargingStationMap = () => {
                   <Card 
                     key={station.id}
                     className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-lg border ${
-                      selectedStation === parseInt(station.id)
+                      selectedStation === station.id
                         ? 'border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]' 
                         : 'border-border/50 hover:border-primary/50'
                     }`}
-                    onClick={() => setSelectedStation(selectedStation === parseInt(station.id) ? null : parseInt(station.id))}
+                    onClick={() => {
+                      setSelectedStation(selectedStation === station.id ? null : station.id);
+                      setMapCenter({ lat: station.latitude, lng: station.longitude });
+                    }}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
@@ -355,7 +450,7 @@ const EnhancedChargingStationMap = () => {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />
-                            {calculateDistance(station.latitude, station.longitude)} km
+                            {userLocation ? getStationDistance(station).toFixed(1) : '—'} km
                           </span>
                           <span className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-electric-amber text-electric-amber" />
@@ -410,38 +505,41 @@ const EnhancedChargingStationMap = () => {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          DC Fast
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          Est. 35min charge
-                        </span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            DC Fast
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            Est. 35min charge
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button 
                           variant="outline" 
                           size="sm"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNavigate(station);
+                          }}
+                        >
+                          <Navigation className="h-4 w-4 mr-2" />
+                          Navigate
+                        </Button>
+                        <Button 
+                          size="sm"
+                          className="flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleReserve(station.id);
                           }}
                           disabled={station.available_slots === 0}
                         >
-                          <Clock className="h-4 w-4 mr-1" />
+                          <Zap className="h-4 w-4 mr-2" />
                           Reserve
-                        </Button>
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleNavigate(station);
-                          }}
-                        >
-                          <Navigation className="h-4 w-4 mr-1" />
-                          Navigate
                         </Button>
                       </div>
                     </div>
