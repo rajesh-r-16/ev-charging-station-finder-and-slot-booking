@@ -91,6 +91,38 @@ const EnhancedV2VMarketplace = () => {
 
   return (
     <div className="space-y-6">
+      {/* Instructions Card */}
+      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Zap className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">How to Use V2V Marketplace</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold text-primary mt-0.5">1.</span>
+                  <span><strong>Create Listing:</strong> Click "Create Listing" to share your available battery energy with others</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold text-primary mt-0.5">2.</span>
+                  <span><strong>Set Details:</strong> Enter available energy (kWh), your price, location, and availability time</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold text-primary mt-0.5">3.</span>
+                  <span><strong>Request Transfer:</strong> Browse listings and click "Request Transfer" to get energy from nearby EVs</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold text-primary mt-0.5">4.</span>
+                  <span><strong>Meet & Connect:</strong> Use V2V charging cable to safely transfer power between vehicles</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
