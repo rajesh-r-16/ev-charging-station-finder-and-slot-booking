@@ -10,6 +10,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { useToast } from "@/hooks/use-toast";
 
+interface ChargingSlot {
+  id: string;
+  slot_number: number;
+  status: string;
+  connector_type: string;
+  power_output_kw: number;
+}
+
 interface Station {
   id: string;
   name: string;
@@ -20,6 +28,7 @@ interface Station {
   available_slots: number;
   total_slots: number;
   amenities: string[] | null;
+  charging_slots?: ChargingSlot[];
 }
 
 interface UserLocation {
@@ -107,7 +116,16 @@ const EnhancedChargingStationMap = () => {
   const fetchStations = async () => {
     const { data, error } = await supabase
       .from('charging_stations')
-      .select('*')
+      .select(`
+        *,
+        charging_slots (
+          id,
+          slot_number,
+          status,
+          connector_type,
+          power_output_kw
+        )
+      `)
       .order('name');
     
     if (error) {
@@ -375,15 +393,34 @@ const EnhancedChargingStationMap = () => {
                       }}
                       onCloseClick={() => setInfoWindowStation(null)}
                     >
-                      <div className="p-2">
+                      <div className="p-2 min-w-[200px]">
                         <h3 className="font-semibold text-sm mb-1">{infoWindowStation.name}</h3>
                         <p className="text-xs text-gray-600 mb-2">{infoWindowStation.address}</p>
                         <div className="flex gap-2 text-xs mb-2">
-                          <span className="font-medium">
-                            {infoWindowStation.available_slots}/{infoWindowStation.total_slots} Available
+                          <span className="font-medium text-green-600">
+                            {infoWindowStation.available_slots}/{infoWindowStation.total_slots} Charging Points
                           </span>
                           <span>₹{infoWindowStation.price_per_hour}/hr</span>
                         </div>
+                        {infoWindowStation.charging_slots && infoWindowStation.charging_slots.length > 0 && (
+                          <div className="mb-2">
+                            <p className="text-xs font-medium mb-1">Charging Points:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {infoWindowStation.charging_slots.slice(0, 4).map((slot) => (
+                                <span 
+                                  key={slot.id} 
+                                  className={`text-xs px-1.5 py-0.5 rounded ${
+                                    slot.status === 'available' 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-red-100 text-red-700'
+                                  }`}
+                                >
+                                  {slot.connector_type}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <Button
                           size="sm"
                           className="w-full text-xs"
@@ -501,6 +538,44 @@ const EnhancedChargingStationMap = () => {
                               +{station.amenities.length - 3} more
                             </Badge>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Individual Charging Points */}
+                    {station.charging_slots && station.charging_slots.length > 0 && (
+                      <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                        <div className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-primary" />
+                          Charging Points Available
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {station.charging_slots.map((slot) => (
+                            <div 
+                              key={slot.id}
+                              className={`flex items-center justify-between p-2 rounded-lg border ${
+                                slot.status === 'available' 
+                                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                                  : 'bg-muted border-border'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Zap className={`h-3 w-3 ${
+                                  slot.status === 'available' ? 'text-green-600' : 'text-muted-foreground'
+                                }`} />
+                                <div className="text-xs">
+                                  <div className="font-medium">Port {slot.slot_number}</div>
+                                  <div className="text-muted-foreground">{slot.connector_type} • {slot.power_output_kw}kW</div>
+                                </div>
+                              </div>
+                              <Badge 
+                                variant={slot.status === 'available' ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {slot.status === 'available' ? '✓' : 'Busy'}
+                              </Badge>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
