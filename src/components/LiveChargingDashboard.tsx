@@ -140,14 +140,14 @@ const LiveChargingDashboard = () => {
   }
 
   return (
-    <section className="py-16 px-4 bg-background">
+    <section className="py-8 px-4 bg-background">
       <div className="container mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-electric-blue bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-primary to-electric-blue bg-clip-text text-transparent">
               Live Charging Dashboard
             </h2>
-            <p className="text-muted-foreground">Real-time status of all charging points</p>
+            <p className="text-sm text-muted-foreground">Real-time status of all charging points</p>
           </div>
           <div className="flex items-center gap-2 mt-4 md:mt-0">
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -158,41 +158,41 @@ const LiveChargingDashboard = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Card className="border-border/50">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-foreground">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total Points</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-xl font-bold text-foreground">{stats.total}</div>
+              <div className="text-xs text-muted-foreground">Total Points</div>
             </CardContent>
           </Card>
           <Card className="border-success/30 bg-success/5">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-success">{stats.available}</div>
-              <div className="text-sm text-muted-foreground">Available</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-xl font-bold text-success">{stats.available}</div>
+              <div className="text-xs text-muted-foreground">Available</div>
             </CardContent>
           </Card>
           <Card className="border-warning/30 bg-warning/5">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-warning">{stats.charging}</div>
-              <div className="text-sm text-muted-foreground">Charging</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-xl font-bold text-warning">{stats.charging}</div>
+              <div className="text-xs text-muted-foreground">Charging</div>
             </CardContent>
           </Card>
           <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-destructive">{stats.occupied}</div>
-              <div className="text-sm text-muted-foreground">Occupied</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-xl font-bold text-destructive">{stats.occupied}</div>
+              <div className="text-xs text-muted-foreground">Occupied</div>
             </CardContent>
           </Card>
           <Card className="border-muted-foreground/30 bg-muted/50">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-muted-foreground">{stats.maintenance}</div>
-              <div className="text-sm text-muted-foreground">Maintenance</div>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-xl font-bold text-muted-foreground">{stats.maintenance}</div>
+              <div className="text-xs text-muted-foreground">Maintenance</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Stations Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {stations.map((station) => (
             <Card key={station.id} className="border-border/50 hover:border-primary/50 transition-colors">
               <CardHeader>
