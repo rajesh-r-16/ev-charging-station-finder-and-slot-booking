@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { User, Car, Phone, Mail, Save } from 'lucide-react';
+import { User, Car, Phone, Mail, Save, CheckCircle, Send, Shield } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ProfileData {
   full_name: string;
@@ -31,6 +32,11 @@ const ProfileSettings = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingOTP, setSendingOTP] = useState(false);
+  const [verifyingOTP, setVerifyingOTP] = useState(false);
+  const [showOTPInput, setShowOTPInput] = useState(false);
+  const [otp, setOtp] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -116,6 +122,121 @@ const ProfileSettings = () => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleSendVerificationEmail = async () => {
+    if (!user) return;
+    
+    try {
+      setSendingEmail(true);
+      const { error } = await supabase.functions.invoke('send-verification-email', {
+        body: {
+          email: user.email,
+          user_id: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email Sent",
+        description: "Please check your inbox for the verification link.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send verification email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleSendPhoneOTP = async () => {
+    if (!user || !profile.phone) {
+      toast({
+        title: "Error",
+        description: "Please enter a phone number first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setSendingOTP(true);
+      const { data, error } = await supabase.functions.invoke('send-phone-otp', {
+        body: {
+          phone: profile.phone,
+          user_id: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      setShowOTPInput(true);
+      toast({
+        title: "OTP Sent",
+        description: data.demo_otp 
+          ? `Demo OTP: ${data.demo_otp} (Check console for production setup)`
+          : "Please check your phone for the verification code.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingOTP(false);
+    }
+  };
+
+  const handleVerifyPhoneOTP = async () => {
+    if (!user || !otp) {
+      toast({
+        title: "Error",
+        description: "Please enter the OTP code",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setVerifyingOTP(true);
+      const { data, error } = await supabase.functions.invoke('verify-phone-otp', {
+        body: {
+          otp: otp,
+          user_id: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Phone Verified",
+          description: "Your phone number has been successfully verified!",
+        });
+        setShowOTPInput(false);
+        setOtp('');
+        fetchProfile(); // Refresh profile data
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: data.error || "Invalid OTP code",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to verify OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifyingOTP(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="border-0 shadow-lg">
@@ -133,19 +254,109 @@ const ProfileSettings = () => {
           <User className="h-5 w-5 text-primary" />
           Profile Settings
         </CardTitle>
-        {profile.email_verified ? (
-          <div className="flex items-center gap-2 text-sm text-green-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            Email verified {profile.verified_at && `on ${new Date(profile.verified_at).toLocaleDateString()}`}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-warning">
-            <div className="w-2 h-2 bg-warning rounded-full"></div>
-            Email verification pending
-          </div>
-        )}
       </CardHeader>
       <CardContent>
+        {/* Verification Status Section */}
+        <div className="mb-6 space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            Account Verification
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Email Verification */}
+            <div className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span className="font-medium">Email</span>
+                </div>
+                {profile.email_verified ? (
+                  <Badge variant="secondary" className="bg-green-500/20 text-green-600 border-green-500/30">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30">
+                    Pending
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">{profile.email}</p>
+              {!profile.email_verified && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSendVerificationEmail}
+                  disabled={sendingEmail}
+                  className="w-full"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sendingEmail ? "Sending..." : "Send Verification Email"}
+                </Button>
+              )}
+            </div>
+
+            {/* Phone Verification */}
+            <div className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span className="font-medium">Phone</span>
+                </div>
+                {profile.verified_at ? (
+                  <Badge variant="secondary" className="bg-green-500/20 text-green-600 border-green-500/30">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30">
+                    Pending
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {profile.phone || "No phone number added"}
+              </p>
+              {profile.phone && !profile.verified_at && !showOTPInput && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSendPhoneOTP}
+                  disabled={sendingOTP}
+                  className="w-full"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sendingOTP ? "Sending..." : "Send OTP"}
+                </Button>
+              )}
+              {showOTPInput && (
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter 6-digit OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    maxLength={6}
+                    className="bg-background/50"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleVerifyPhoneOTP}
+                    disabled={verifyingOTP}
+                    className="w-full"
+                  >
+                    {verifyingOTP ? "Verifying..." : "Verify OTP"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
