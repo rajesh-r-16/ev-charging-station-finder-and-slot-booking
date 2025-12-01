@@ -18,8 +18,8 @@ const V2VFeature = () => {
                 Share or request power from other EV owners in your area
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              Coming Soon
+            <Badge variant="default" className="bg-green-600">
+              Active
             </Badge>
           </div>
         </CardHeader>
@@ -126,9 +126,9 @@ const V2VFeature = () => {
                 <p className="text-muted-foreground mb-4">
                   No active V2V requests in your area
                 </p>
-                <Button disabled variant="outline">
+                <Button variant="default" onClick={() => window.location.href = '#v2v-marketplace'}>
                   <Zap className="h-4 w-4 mr-2" />
-                  Create V2V Request
+                  Browse V2V Marketplace
                 </Button>
               </CardContent>
             </Card>
