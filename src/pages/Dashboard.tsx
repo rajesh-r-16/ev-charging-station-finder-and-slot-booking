@@ -17,6 +17,8 @@ import RoutePlanner from '@/components/RoutePlanner';
 import CarbonTracker from '@/components/CarbonTracker';
 import EnhancedV2VMarketplace from '@/components/EnhancedV2VMarketplace';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
+import NotificationCenter from '@/components/NotificationCenter';
+import V2GEnrollment from '@/components/V2GEnrollment';
 
 interface DashboardStats {
   totalBookings: number;
@@ -392,6 +394,8 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-6">
+            <NotificationCenter />
+            
             <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -449,7 +453,10 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="v2g">
-            <V2GFeature />
+            <div className="grid gap-6">
+              <V2GEnrollment />
+              <V2GFeature />
+            </div>
           </TabsContent>
 
           <TabsContent value="analytics">

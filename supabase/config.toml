@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.verify-phone-otp]
 verify_jwt = false
+
+[functions.calculate-route]
+verify_jwt = true
+
+[functions.create-v2v-listing]
+verify_jwt = true
+
+[functions.request-v2v-transfer]
+verify_jwt = true
+
+[functions.enroll-v2g]
+verify_jwt = true

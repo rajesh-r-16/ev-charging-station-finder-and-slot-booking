@@ -75,18 +75,72 @@ const EnhancedV2VMarketplace = () => {
   };
 
   const createListing = async () => {
-    toast({
-      title: "Creating Listing",
-      description: "Your V2V energy sharing listing is being created"
-    });
-    setCreateDialogOpen(false);
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('create-v2v-listing', {
+        body: {
+          availableEnergy: parseFloat((document.getElementById('energy') as HTMLInputElement)?.value || '0'),
+          location: {
+            lat: parseFloat((document.getElementById('lat') as HTMLInputElement)?.value || '0'),
+            lng: parseFloat((document.getElementById('lng') as HTMLInputElement)?.value || '0'),
+            address: (document.getElementById('address') as HTMLInputElement)?.value || ''
+          },
+          pricePerKwh: parseFloat((document.getElementById('price') as HTMLInputElement)?.value || '0'),
+          availableFrom: new Date((document.getElementById('from') as HTMLInputElement)?.value || '').toISOString(),
+          availableUntil: new Date((document.getElementById('until') as HTMLInputElement)?.value || '').toISOString(),
+          maxTransfer: parseFloat((document.getElementById('maxTransfer') as HTMLInputElement)?.value || '0'),
+          minTransfer: parseFloat((document.getElementById('minTransfer') as HTMLInputElement)?.value || '5')
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Your V2V listing has been created"
+      });
+      
+      setCreateDialogOpen(false);
+      fetchListings();
+    } catch (error) {
+      console.error('Create listing error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create listing",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const requestTransfer = (listing: V2VListing) => {
-    toast({
-      title: "Transfer Request",
-      description: `Requesting energy transfer from ${listing.providerName}`
-    });
+  const requestTransfer = async (listing: V2VListing) => {
+    try {
+      const energyRequested = prompt(`How much energy do you need? (${listing.minTransfer}-${listing.maxTransfer} kWh)`);
+      if (!energyRequested) return;
+
+      const { data, error } = await supabase.functions.invoke('request-v2v-transfer', {
+        body: {
+          listingId: listing.id,
+          energyRequested: parseFloat(energyRequested)
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Sent",
+        description: "Your transfer request has been sent to the provider"
+      });
+    } catch (error) {
+      console.error('Request transfer error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to request transfer",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

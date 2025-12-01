@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Navigation, Battery, Zap, DollarSign, Leaf, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RouteOption {
   id: string;
-  mode: 'fastest' | 'cheapest' | 'lowest_carbon';
+  mode: 'fastest' | 'cheapest' | 'lowest_carbon' | 'nearest_v2v';
   distance: number;
   duration: number;
   cost: number;
@@ -38,42 +39,40 @@ const RoutePlanner = () => {
 
     setLoading(true);
     try {
-      // Mock routes for demonstration
-      const mockRoutes: RouteOption[] = [
-        {
-          id: '1',
-          mode: 'fastest',
-          distance: 450,
-          duration: 360,
-          cost: 1200,
-          carbon: 12.5,
-          chargingStops: 2
-        },
-        {
-          id: '2',
-          mode: 'cheapest',
-          distance: 465,
-          duration: 390,
-          cost: 950,
-          carbon: 14.2,
-          chargingStops: 3
-        },
-        {
-          id: '3',
-          mode: 'lowest_carbon',
-          distance: 455,
-          duration: 385,
-          cost: 1050,
-          carbon: 9.8,
-          chargingStops: 2
+      const { data, error } = await supabase.functions.invoke('calculate-route', {
+        body: {
+          startLocation,
+          endLocation,
+          currentSoc: currentSoC,
+          targetSoc: targetSoC,
+          optimizationModes: ['fastest', 'cheapest', 'lowest_carbon', 'nearest_v2v']
         }
-      ];
-
-      setRoutes(mockRoutes);
-      toast({
-        title: "Routes Calculated",
-        description: "Found 3 optimized routes for your journey"
       });
+
+      if (error) throw error;
+
+      if (data?.routes && data.routes.length > 0) {
+        setRoutes(data.routes.map((r: any, i: number) => ({
+          id: String(i + 1),
+          mode: r.mode,
+          distance: r.distance,
+          duration: r.duration,
+          cost: r.cost,
+          carbon: r.carbonFootprint,
+          chargingStops: r.chargingStops?.length || 0
+        })));
+        
+        toast({
+          title: "Routes Calculated",
+          description: `Found ${data.routes.length} optimized routes with AI`
+        });
+      } else {
+        toast({
+          title: "No Routes Found",
+          description: "Try different locations",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error calculating routes:', error);
       toast({
@@ -91,6 +90,7 @@ const RoutePlanner = () => {
       case 'fastest': return <Clock className="h-4 w-4" />;
       case 'cheapest': return <DollarSign className="h-4 w-4" />;
       case 'lowest_carbon': return <Leaf className="h-4 w-4" />;
+      case 'nearest_v2v': return <Zap className="h-4 w-4" />;
       default: return <Navigation className="h-4 w-4" />;
     }
   };
@@ -99,8 +99,9 @@ const RoutePlanner = () => {
     switch (mode) {
       case 'fastest': return 'bg-primary/10 text-primary border-primary/20';
       case 'cheapest': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'lowest_carbon': return 'bg-secondary/10 text-secondary border-secondary/20';
-      default: return 'bg-muted';
+      case 'lowest_carbon': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'nearest_v2v': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      default: return 'bg-muted/10 text-muted-foreground border-muted/20';
     }
   };
 

@@ -18,8 +18,8 @@ const V2GFeature = () => {
                 Sell excess battery power back to the grid and earn money
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              Coming Soon
+            <Badge variant="default" className="bg-green-600">
+              Active
             </Badge>
           </div>
         </CardHeader>
