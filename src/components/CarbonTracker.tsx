@@ -234,7 +234,14 @@ const CarbonTracker = () => {
               <p className="text-muted-foreground mb-4">
                 No charging sessions yet. Start charging to track your carbon footprint!
               </p>
-              <Button onClick={() => window.location.href = '/'}>
+              <Button onClick={() => {
+                const element = document.getElementById('booking-section');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  window.location.href = '/';
+                }
+              }}>
                 Find Charging Stations
               </Button>
             </div>

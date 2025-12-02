@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Car, Users, Battery, MapPin, Clock, Zap, DollarSign, Plus } from 'lucide-react';
+import { Car, Users, Battery, MapPin, Clock, Zap, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -28,12 +28,22 @@ const EnhancedV2VMarketplace = () => {
   const [listings, setListings] = useState<V2VListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  
+  // Form state
+  const [energy, setEnergy] = useState('20');
+  const [price, setPrice] = useState('15');
+  const [address, setAddress] = useState('');
+  const [lat, setLat] = useState('28.6139');
+  const [lng, setLng] = useState('77.2090');
+  const [availableFrom, setAvailableFrom] = useState('09:00');
+  const [availableUntil, setAvailableUntil] = useState('18:00');
+  const [minTransfer, setMinTransfer] = useState('5');
+  const [maxTransfer, setMaxTransfer] = useState('15');
 
   useEffect(() => {
-    if (user) {
-      fetchListings();
-    }
-  }, [user]);
+    fetchListings();
+  }, []);
 
   const fetchListings = async () => {
     try {
@@ -47,10 +57,9 @@ const EnhancedV2VMarketplace = () => {
 
       if (error) throw error;
 
-      // Transform data
       const transformedListings: V2VListing[] = (data || []).map(listing => ({
         id: listing.id,
-        providerName: 'EV Owner', // In production, fetch from profiles
+        providerName: 'EV Owner',
         location: listing.location as any,
         availableEnergy: Number(listing.available_energy_kwh),
         pricePerKwh: Number(listing.price_per_kwh),
@@ -58,7 +67,7 @@ const EnhancedV2VMarketplace = () => {
         maxTransfer: Number(listing.max_transfer_kwh),
         availableFrom: listing.available_from,
         availableUntil: listing.available_until,
-        distance: Math.random() * 10 // Mock distance calculation
+        distance: Math.random() * 10
       }));
 
       setListings(transformedListings);
@@ -74,23 +83,76 @@ const EnhancedV2VMarketplace = () => {
     }
   };
 
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLat(position.coords.latitude.toString());
+          setLng(position.coords.longitude.toString());
+          toast({
+            title: "Location Updated",
+            description: "Your current location has been set"
+          });
+        },
+        () => {
+          toast({
+            title: "Location Error",
+            description: "Unable to get your location. Using default.",
+            variant: "destructive"
+          });
+        }
+      );
+    }
+  };
+
   const createListing = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a listing",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!energy || !price || !address) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      setLoading(true);
+      setCreating(true);
       
+      const today = new Date();
+      const fromDate = new Date(today);
+      const [fromHours, fromMinutes] = availableFrom.split(':');
+      fromDate.setHours(parseInt(fromHours), parseInt(fromMinutes), 0, 0);
+      
+      const untilDate = new Date(today);
+      const [untilHours, untilMinutes] = availableUntil.split(':');
+      untilDate.setHours(parseInt(untilHours), parseInt(untilMinutes), 0, 0);
+      
+      if (untilDate <= fromDate) {
+        untilDate.setDate(untilDate.getDate() + 1);
+      }
+
       const { data, error } = await supabase.functions.invoke('create-v2v-listing', {
         body: {
-          availableEnergy: parseFloat((document.getElementById('energy') as HTMLInputElement)?.value || '0'),
+          availableEnergy: parseFloat(energy),
           location: {
-            lat: parseFloat((document.getElementById('lat') as HTMLInputElement)?.value || '0'),
-            lng: parseFloat((document.getElementById('lng') as HTMLInputElement)?.value || '0'),
-            address: (document.getElementById('address') as HTMLInputElement)?.value || ''
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+            address: address
           },
-          pricePerKwh: parseFloat((document.getElementById('price') as HTMLInputElement)?.value || '0'),
-          availableFrom: new Date((document.getElementById('from') as HTMLInputElement)?.value || '').toISOString(),
-          availableUntil: new Date((document.getElementById('until') as HTMLInputElement)?.value || '').toISOString(),
-          maxTransfer: parseFloat((document.getElementById('maxTransfer') as HTMLInputElement)?.value || '0'),
-          minTransfer: parseFloat((document.getElementById('minTransfer') as HTMLInputElement)?.value || '5')
+          pricePerKwh: parseFloat(price),
+          availableFrom: fromDate.toISOString(),
+          availableUntil: untilDate.toISOString(),
+          maxTransfer: parseFloat(maxTransfer),
+          minTransfer: parseFloat(minTransfer)
         }
       });
 
@@ -102,28 +164,54 @@ const EnhancedV2VMarketplace = () => {
       });
       
       setCreateDialogOpen(false);
+      // Reset form
+      setEnergy('20');
+      setPrice('15');
+      setAddress('');
+      setMinTransfer('5');
+      setMaxTransfer('15');
+      
       fetchListings();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create listing error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create listing",
+        description: error.message || "Failed to create listing. Make sure you have a vehicle profile.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
 
   const requestTransfer = async (listing: V2VListing) => {
-    try {
-      const energyRequested = prompt(`How much energy do you need? (${listing.minTransfer}-${listing.maxTransfer} kWh)`);
-      if (!energyRequested) return;
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to request a transfer",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    const energyRequested = prompt(`How much energy do you need? (${listing.minTransfer}-${listing.maxTransfer} kWh)`);
+    if (!energyRequested) return;
+
+    const requestedAmount = parseFloat(energyRequested);
+    if (isNaN(requestedAmount) || requestedAmount < listing.minTransfer || requestedAmount > listing.maxTransfer) {
+      toast({
+        title: "Invalid Amount",
+        description: `Please enter a value between ${listing.minTransfer} and ${listing.maxTransfer} kWh`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
       const { data, error } = await supabase.functions.invoke('request-v2v-transfer', {
         body: {
           listingId: listing.id,
-          energyRequested: parseFloat(energyRequested)
+          energyRequested: requestedAmount
         }
       });
 
@@ -131,9 +219,9 @@ const EnhancedV2VMarketplace = () => {
 
       toast({
         title: "Request Sent",
-        description: "Your transfer request has been sent to the provider"
+        description: `Your transfer request for ${requestedAmount} kWh has been sent. Total cost: ₹${(requestedAmount * listing.pricePerKwh).toFixed(2)}`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Request transfer error:', error);
       toast({
         title: "Error",
@@ -196,35 +284,94 @@ const EnhancedV2VMarketplace = () => {
                   Create Listing
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Create V2V Energy Listing</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label>Available Energy (kWh)</Label>
-                    <Input type="number" placeholder="10" />
+                    <Label htmlFor="energy">Available Energy (kWh) *</Label>
+                    <Input 
+                      id="energy"
+                      type="number" 
+                      placeholder="20" 
+                      value={energy}
+                      onChange={(e) => setEnergy(e.target.value)}
+                    />
                   </div>
                   <div>
-                    <Label>Price per kWh (₹)</Label>
-                    <Input type="number" placeholder="15" />
+                    <Label htmlFor="price">Price per kWh (₹) *</Label>
+                    <Input 
+                      id="price"
+                      type="number" 
+                      placeholder="15" 
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                    />
                   </div>
                   <div>
-                    <Label>Location</Label>
-                    <Input placeholder="Enter your location" />
+                    <Label htmlFor="address">Location Address *</Label>
+                    <Input 
+                      id="address"
+                      placeholder="Enter your current location" 
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 w-full"
+                      onClick={getCurrentLocation}
+                    >
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Use Current Location
+                    </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Available From</Label>
-                      <Input type="time" />
+                      <Label htmlFor="minTransfer">Min Transfer (kWh)</Label>
+                      <Input 
+                        id="minTransfer"
+                        type="number" 
+                        placeholder="5" 
+                        value={minTransfer}
+                        onChange={(e) => setMinTransfer(e.target.value)}
+                      />
                     </div>
                     <div>
-                      <Label>Available Until</Label>
-                      <Input type="time" />
+                      <Label htmlFor="maxTransfer">Max Transfer (kWh)</Label>
+                      <Input 
+                        id="maxTransfer"
+                        type="number" 
+                        placeholder="15" 
+                        value={maxTransfer}
+                        onChange={(e) => setMaxTransfer(e.target.value)}
+                      />
                     </div>
                   </div>
-                  <Button onClick={createListing} className="w-full">
-                    Create Listing
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="availableFrom">Available From</Label>
+                      <Input 
+                        id="availableFrom"
+                        type="time" 
+                        value={availableFrom}
+                        onChange={(e) => setAvailableFrom(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="availableUntil">Available Until</Label>
+                      <Input 
+                        id="availableUntil"
+                        type="time" 
+                        value={availableUntil}
+                        onChange={(e) => setAvailableUntil(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={createListing} disabled={creating} className="w-full">
+                    {creating ? 'Creating...' : 'Create Listing'}
                   </Button>
                 </div>
               </DialogContent>
@@ -248,7 +395,7 @@ const EnhancedV2VMarketplace = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-3 w-3" />
-                        <span>{listing.location.address}</span>
+                        <span>{listing.location?.address || 'Location available'}</span>
                         <Badge variant="outline" className="ml-2">
                           {listing.distance?.toFixed(1)} km away
                         </Badge>
@@ -287,7 +434,7 @@ const EnhancedV2VMarketplace = () => {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       <span>
-                        {new Date(listing.availableFrom).toLocaleTimeString()} - {new Date(listing.availableUntil).toLocaleTimeString()}
+                        {new Date(listing.availableFrom).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(listing.availableUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <Button size="sm" onClick={() => requestTransfer(listing)}>
