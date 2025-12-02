@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Car, Users, Battery, MapPin, Clock, Zap } from 'lucide-react';
+import { Car, Users, Battery, Zap } from 'lucide-react';
+import EnhancedV2VMarketplace from './EnhancedV2VMarketplace';
 
 const V2VFeature = () => {
   return (
@@ -58,80 +58,9 @@ const V2VFeature = () => {
                 <h3 className="font-semibold">Earn Rewards</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Get credits for helping other EV owners in need
+                Get paid for helping other EV owners in need
               </p>
             </div>
-          </div>
-
-          {/* How It Works */}
-          <div>
-            <h3 className="font-semibold mb-4">How V2V Charging Works</h3>
-            <div className="space-y-3">
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">1</span>
-                </div>
-                <div>
-                  <p className="font-medium">Request or Offer</p>
-                  <p className="text-sm text-muted-foreground">
-                    Post a request for emergency charge or offer your available battery power
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">2</span>
-                </div>
-                <div>
-                  <p className="font-medium">Connect Nearby</p>
-                  <p className="text-sm text-muted-foreground">
-                    Find and connect with EV owners within your proximity using our map
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">3</span>
-                </div>
-                <div>
-                  <p className="font-medium">Share Power</p>
-                  <p className="text-sm text-muted-foreground">
-                    Use V2V charging cable to transfer power between vehicles safely
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">4</span>
-                </div>
-                <div>
-                  <p className="font-medium">Complete & Earn</p>
-                  <p className="text-sm text-muted-foreground">
-                    Transaction completes automatically with credits or payment
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Requests (Placeholder) */}
-          <div>
-            <h3 className="font-semibold mb-4">Nearby V2V Requests</h3>
-            <Card className="bg-muted/50 border-dashed">
-              <CardContent className="py-8 text-center">
-                <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground mb-4">
-                  No active V2V requests in your area
-                </p>
-                <Button variant="default" onClick={() => window.location.href = '#v2v-marketplace'}>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Browse V2V Marketplace
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Benefits */}
@@ -151,7 +80,7 @@ const V2VFeature = () => {
               </li>
               <li className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                Earn credits by helping others charge their vehicles
+                Earn money by helping others charge their vehicles
               </li>
               <li className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
@@ -161,6 +90,9 @@ const V2VFeature = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* V2V Marketplace */}
+      <EnhancedV2VMarketplace />
     </div>
   );
 };

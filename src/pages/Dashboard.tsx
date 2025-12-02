@@ -15,10 +15,9 @@ import V2VFeature from '@/components/V2VFeature';
 import V2GFeature from '@/components/V2GFeature';
 import RoutePlanner from '@/components/RoutePlanner';
 import CarbonTracker from '@/components/CarbonTracker';
-import EnhancedV2VMarketplace from '@/components/EnhancedV2VMarketplace';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard';
 import NotificationCenter from '@/components/NotificationCenter';
-import V2GEnrollment from '@/components/V2GEnrollment';
+import VehicleProfileForm from '@/components/VehicleProfileForm';
 
 interface DashboardStats {
   totalBookings: number;
@@ -449,14 +448,11 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="v2v">
-            <EnhancedV2VMarketplace />
+            <V2VFeature />
           </TabsContent>
 
           <TabsContent value="v2g">
-            <div className="grid gap-6">
-              <V2GEnrollment />
-              <V2GFeature />
-            </div>
+            <V2GFeature />
           </TabsContent>
 
           <TabsContent value="analytics">
@@ -464,7 +460,10 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="profile">
-            <ProfileSettings />
+            <div className="space-y-6">
+              <VehicleProfileForm />
+              <ProfileSettings />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

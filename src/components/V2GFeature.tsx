@@ -1,9 +1,67 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Zap, TrendingUp, Battery, Grid3x3, DollarSign, BarChart3 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import V2GEnrollment from './V2GEnrollment';
+
+interface V2GStats {
+  totalEnergySold: number;
+  totalEarnings: number;
+  enrollmentStatus: string;
+}
 
 const V2GFeature = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<V2GStats>({
+    totalEnergySold: 0,
+    totalEarnings: 0,
+    enrollmentStatus: 'not_enrolled'
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchV2GStats();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchV2GStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Check enrollment status
+      const { data: enrollment } = await supabase
+        .from('v2g_enrollments')
+        .select('*, total_earnings, total_energy_sold_kwh')
+        .eq('user_id', user?.id)
+        .eq('status', 'active')
+        .single();
+
+      // Fetch grid transactions
+      const { data: transactions } = await supabase
+        .from('v2g_grid_transactions')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      const totalEnergySold = transactions?.reduce((sum, t) => sum + Number(t.energy_discharged_kwh), 0) || 0;
+      const totalEarnings = transactions?.reduce((sum, t) => sum + Number(t.earnings), 0) || 0;
+
+      setStats({
+        totalEnergySold: enrollment?.total_energy_sold_kwh || totalEnergySold,
+        totalEarnings: enrollment?.total_earnings || totalEarnings,
+        enrollmentStatus: enrollment ? 'active' : 'not_enrolled'
+      });
+    } catch (error) {
+      console.error('Error fetching V2G stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
@@ -18,8 +76,11 @@ const V2GFeature = () => {
                 Sell excess battery power back to the grid and earn money
               </CardDescription>
             </div>
-            <Badge variant="default" className="bg-green-600">
-              Active
+            <Badge 
+              variant="default" 
+              className={stats.enrollmentStatus === 'active' ? 'bg-green-600' : 'bg-muted'}
+            >
+              {stats.enrollmentStatus === 'active' ? 'Enrolled' : 'Not Enrolled'}
             </Badge>
           </div>
         </CardHeader>
@@ -63,103 +124,36 @@ const V2GFeature = () => {
             </div>
           </div>
 
-          {/* How It Works */}
-          <div>
-            <h3 className="font-semibold mb-4">How V2G Integration Works</h3>
-            <div className="space-y-3">
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">1</span>
-                </div>
-                <div>
-                  <p className="font-medium">Connect to Grid</p>
-                  <p className="text-sm text-muted-foreground">
-                    Register your EV with the grid operator and install V2G compatible charger
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">2</span>
-                </div>
-                <div>
-                  <p className="font-medium">Set Preferences</p>
-                  <p className="text-sm text-muted-foreground">
-                    Define minimum battery level, available hours, and pricing preferences
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">3</span>
-                </div>
-                <div>
-                  <p className="font-medium">Automatic Trading</p>
-                  <p className="text-sm text-muted-foreground">
-                    System automatically sells power during peak hours for maximum profit
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">4</span>
-                </div>
-                <div>
-                  <p className="font-medium">Track Earnings</p>
-                  <p className="text-sm text-muted-foreground">
-                    Monitor your earnings and energy contribution in real-time
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Dashboard (Placeholder) */}
+          {/* V2G Stats Dashboard */}
           <div>
             <h3 className="font-semibold mb-4">V2G Performance Dashboard</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-muted/50 border-dashed">
+              <Card className={stats.totalEnergySold > 0 ? 'bg-primary/5 border-primary/20' : 'bg-muted/50 border-dashed'}>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Energy Sold (kWh)</span>
-                    <Zap className="h-4 w-4 text-muted-foreground" />
+                    <Zap className={`h-4 w-4 ${stats.totalEnergySold > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
                   </div>
-                  <div className="text-2xl font-bold text-muted-foreground">0.0</div>
-                  <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+                  <div className={`text-2xl font-bold ${stats.totalEnergySold > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {loading ? '...' : stats.totalEnergySold.toFixed(1)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Total energy discharged</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-muted/50 border-dashed">
+              <Card className={stats.totalEarnings > 0 ? 'bg-green-500/5 border-green-500/20' : 'bg-muted/50 border-dashed'}>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Total Earnings</span>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <DollarSign className={`h-4 w-4 ${stats.totalEarnings > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
                   </div>
-                  <div className="text-2xl font-bold text-muted-foreground">₹0.00</div>
-                  <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+                  <div className={`text-2xl font-bold ${stats.totalEarnings > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    ₹{loading ? '...' : stats.totalEarnings.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Lifetime earnings</p>
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* Settings (Placeholder) */}
-          <div>
-            <h3 className="font-semibold mb-4">V2G Settings</h3>
-            <Card className="bg-muted/50 border-dashed">
-              <CardContent className="py-8 text-center">
-                <Battery className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground mb-4">
-                  Configure your V2G preferences when feature is available
-                </p>
-                <Button disabled variant="outline">
-                  <Grid3x3 className="h-4 w-4 mr-2" />
-                  Configure V2G Settings
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Benefits */}
@@ -193,6 +187,9 @@ const V2GFeature = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* V2G Enrollment */}
+      <V2GEnrollment />
     </div>
   );
 };

@@ -223,7 +223,16 @@ const RoutePlanner = () => {
               </div>
 
               {selectedRoute && (
-                <Button className="w-full">
+                <Button 
+                  className="w-full"
+                  onClick={() => {
+                    window.open(`https://www.google.com/maps/dir/${encodeURIComponent(startLocation)}/${encodeURIComponent(endLocation)}`, '_blank');
+                    toast({
+                      title: "Navigation Started",
+                      description: `${selectedRoute.mode.replace('_', ' ')} route selected with ${selectedRoute.chargingStops} charging stops`
+                    });
+                  }}
+                >
                   <Zap className="h-4 w-4 mr-2" />
                   Start Navigation
                 </Button>
