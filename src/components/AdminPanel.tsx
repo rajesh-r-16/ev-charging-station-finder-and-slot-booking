@@ -424,7 +424,7 @@ const AdminPanel = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="price">Price per Hour ($)</Label>
+                        <Label htmlFor="price">Price per Hour (₹)</Label>
                         <Input
                           id="price"
                           type="number"
@@ -653,7 +653,7 @@ const AdminPanel = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-price">Price per Hour ($)</Label>
+                <Label htmlFor="edit-price">Price per Hour (₹)</Label>
                 <Input
                   id="edit-price"
                   type="number"

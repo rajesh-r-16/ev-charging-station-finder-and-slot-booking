@@ -21,8 +21,8 @@ const BookingInterface = () => {
     address: "123 Main St, Downtown",
     rating: 4.8,
     chargingSpeed: "150 kW",
-    price: "$0.35/kWh",
-    estimatedCost: "$12.50",
+    price: "₹25/kWh",
+    estimatedCost: "₹875",
     estimatedTime: "35 min"
   };
 

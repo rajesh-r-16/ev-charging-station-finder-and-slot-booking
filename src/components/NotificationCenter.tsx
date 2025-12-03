@@ -91,7 +91,7 @@ const NotificationCenter = () => {
         notifs.push({
           id: req.id,
           type: 'v2v_request',
-          message: `V2V request for ${req.energy_transferred_kwh} kWh - $${req.total_cost.toFixed(2)}`,
+          message: `V2V request for ${req.energy_transferred_kwh} kWh - ₹${req.total_cost.toFixed(2)}`,
           timestamp: req.created_at,
           read: false,
           data: req
@@ -102,7 +102,7 @@ const NotificationCenter = () => {
         notifs.push({
           id: txn.id,
           type: 'v2g_transaction',
-          message: `V2G: Sold ${txn.energy_discharged_kwh} kWh, earned $${txn.earnings.toFixed(2)}`,
+          message: `V2G: Sold ${txn.energy_discharged_kwh} kWh, earned ₹${txn.earnings.toFixed(2)}`,
           timestamp: txn.timestamp,
           read: false,
           data: txn
