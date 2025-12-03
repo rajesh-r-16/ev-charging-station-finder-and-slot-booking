@@ -49,26 +49,62 @@ const EnhancedV2VMarketplace = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Fetch listings with provider profile info
+      const { data: listings, error: listingsError } = await supabase
         .from('v2v_listings')
         .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (listingsError) throw listingsError;
 
-      const transformedListings: V2VListing[] = (data || []).map(listing => ({
-        id: listing.id,
-        providerName: 'EV Owner',
-        location: listing.location as any,
-        availableEnergy: Number(listing.available_energy_kwh),
-        pricePerKwh: Number(listing.price_per_kwh),
-        minTransfer: Number(listing.min_transfer_kwh),
-        maxTransfer: Number(listing.max_transfer_kwh),
-        availableFrom: listing.available_from,
-        availableUntil: listing.available_until,
-        distance: Math.random() * 10
-      }));
+      // Get unique provider IDs
+      const providerIds = [...new Set((listings || []).map(l => l.provider_user_id))];
+      
+      // Fetch provider profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', providerIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+
+      // Calculate distance from user location (if available)
+      let userLat = 28.6139, userLng = 77.2090; // Default Delhi
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          userLat = position.coords.latitude;
+          userLng = position.coords.longitude;
+        } catch {
+          // Use default location
+        }
+      }
+
+      const transformedListings: V2VListing[] = (listings || []).map(listing => {
+        const loc = listing.location as any;
+        const distance = loc?.lat && loc?.lng 
+          ? calculateDistance(userLat, userLng, loc.lat, loc.lng)
+          : Math.random() * 10;
+          
+        return {
+          id: listing.id,
+          providerName: profileMap.get(listing.provider_user_id) || 'EV Owner',
+          location: loc,
+          availableEnergy: Number(listing.available_energy_kwh),
+          pricePerKwh: Number(listing.price_per_kwh),
+          minTransfer: Number(listing.min_transfer_kwh),
+          maxTransfer: Number(listing.max_transfer_kwh),
+          availableFrom: listing.available_from,
+          availableUntil: listing.available_until,
+          distance
+        };
+      });
+
+      // Sort by distance
+      transformedListings.sort((a, b) => (a.distance || 0) - (b.distance || 0));
 
       setListings(transformedListings);
     } catch (error) {
@@ -81,6 +117,18 @@ const EnhancedV2VMarketplace = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Haversine formula for distance calculation
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   };
 
   const getCurrentLocation = () => {
