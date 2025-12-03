@@ -230,7 +230,7 @@ const EnhancedBookingInterface = () => {
                   <p className="text-sm text-muted-foreground mb-2">{station.address}</p>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-electric-green font-medium">
-                      ${station.price_per_hour}/hr
+                      ₹{station.price_per_hour}/hr
                     </span>
                     <Badge variant={station.available_slots > 0 ? "default" : "destructive"}>
                       {station.available_slots}/{station.total_slots} available
@@ -260,7 +260,7 @@ const EnhancedBookingInterface = () => {
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-electric-green mb-1">
-                  ${selectedStation.price_per_hour}/hr
+                  ₹{selectedStation.price_per_hour}/hr
                 </div>
                 <div className="text-sm text-muted-foreground">per hour</div>
               </div>
@@ -413,7 +413,7 @@ const EnhancedBookingInterface = () => {
                       <p>Duration: {duration} hour{duration > 1 ? 's' : ''}</p>
                       <div className="border-t pt-2 mt-2">
                         <p className="font-medium text-electric-green text-lg">
-                          Total: ${calculateTotal().toFixed(2)}
+                          Total: ₹{calculateTotal().toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -435,7 +435,7 @@ const EnhancedBookingInterface = () => {
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      Book & Pay ${calculateTotal().toFixed(2)}
+                      Book & Pay ₹{calculateTotal().toFixed(2)}
                     </>
                   )}
                 </Button>
@@ -466,7 +466,7 @@ const EnhancedBookingInterface = () => {
                       {booking.status}
                     </Badge>
                     <p className="text-sm text-electric-green font-medium mt-1">
-                      ${booking.total_amount}
+                      ₹{booking.total_amount}
                     </p>
                   </div>
                 </div>

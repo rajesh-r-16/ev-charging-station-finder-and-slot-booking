@@ -469,7 +469,7 @@ const AdminPanel = () => {
                             {station.available_slots}/{station.total_slots} available
                           </Badge>
                           <span className="text-sm text-electric-green font-medium">
-                            ${station.price_per_hour}/hr
+                            ₹{station.price_per_hour}/hr
                           </span>
                         </div>
                       </div>
