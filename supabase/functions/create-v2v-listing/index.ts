@@ -19,11 +19,17 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Client for user authentication
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Admin client for database operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
@@ -41,18 +47,18 @@ serve(async (req) => {
     console.log('Creating V2V listing for user:', user.id);
 
     // Check if user has a vehicle profile
-    const { data: vehicleProfile } = await supabase
+    const { data: vehicleProfile } = await supabaseAdmin
       .from('vehicle_profiles')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
     if (!vehicleProfile) {
-      throw new Error('Vehicle profile required. Please complete your profile first.');
+      throw new Error('Vehicle profile required. Please add your vehicle in Profile settings first.');
     }
 
     // Create listing
-    const { data: listing, error: listingError } = await supabase
+    const { data: listing, error: listingError } = await supabaseAdmin
       .from('v2v_listings')
       .insert({
         provider_user_id: user.id,
@@ -75,7 +81,10 @@ serve(async (req) => {
 
     console.log('V2V listing created:', listing.id);
 
-    return new Response(JSON.stringify({ listing }), {
+    return new Response(JSON.stringify({ 
+      listing,
+      message: 'V2V listing created successfully!'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

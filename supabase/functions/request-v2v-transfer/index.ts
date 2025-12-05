@@ -19,11 +19,17 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Client for user authentication
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Admin client for database operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
@@ -33,7 +39,7 @@ serve(async (req) => {
     console.log('V2V transfer request:', { listingId, energyRequested, userId: user.id });
 
     // Get listing details
-    const { data: listing, error: listingError } = await supabase
+    const { data: listing, error: listingError } = await supabaseAdmin
       .from('v2v_listings')
       .select('*')
       .eq('id', listingId)
@@ -53,8 +59,8 @@ serve(async (req) => {
 
     const totalCost = energyRequested * listing.price_per_kwh;
 
-    // Create transaction
-    const { data: transaction, error: transactionError } = await supabase
+    // Create transaction using admin client
+    const { data: transaction, error: transactionError } = await supabaseAdmin
       .from('v2v_transactions')
       .insert({
         listing_id: listingId,
@@ -74,11 +80,10 @@ serve(async (req) => {
 
     console.log('V2V transaction created:', transaction.id);
 
-    // Create notification for provider (using a simple approach)
-    // In a real app, you'd use a proper notification system
-    console.log('Notification: User', listing.provider_user_id, 'has a new V2V request from', user.id);
-
-    return new Response(JSON.stringify({ transaction }), {
+    return new Response(JSON.stringify({ 
+      transaction,
+      message: `Transfer request sent! Total cost: ₹${totalCost.toFixed(2)}`
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

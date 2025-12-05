@@ -19,11 +19,17 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Client for user authentication
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Admin client for database operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
@@ -39,7 +45,7 @@ serve(async (req) => {
     console.log('Enrolling in V2G:', { userId: user.id, vehicleProfileId });
 
     // Verify vehicle profile belongs to user
-    const { data: vehicleProfile, error: profileError } = await supabase
+    const { data: vehicleProfile, error: profileError } = await supabaseAdmin
       .from('vehicle_profiles')
       .select('*')
       .eq('id', vehicleProfileId)
@@ -51,7 +57,7 @@ serve(async (req) => {
     }
 
     // Check if already enrolled
-    const { data: existingEnrollment } = await supabase
+    const { data: existingEnrollment } = await supabaseAdmin
       .from('v2g_enrollments')
       .select('*')
       .eq('user_id', user.id)
@@ -64,7 +70,7 @@ serve(async (req) => {
     }
 
     // Create enrollment
-    const { data: enrollment, error: enrollmentError } = await supabase
+    const { data: enrollment, error: enrollmentError } = await supabaseAdmin
       .from('v2g_enrollments')
       .insert({
         user_id: user.id,
@@ -85,7 +91,10 @@ serve(async (req) => {
 
     console.log('V2G enrollment created:', enrollment.id);
 
-    return new Response(JSON.stringify({ enrollment }), {
+    return new Response(JSON.stringify({ 
+      enrollment,
+      message: 'Successfully enrolled in V2G program!'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
