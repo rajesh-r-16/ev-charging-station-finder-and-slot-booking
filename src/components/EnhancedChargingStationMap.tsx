@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Navigation, Zap, Search, SlidersHorizontal, Battery, ExternalLink } from "lucide-react";
+import { MapPin, Navigation, Zap, Search, SlidersHorizontal, Battery } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,182 @@ interface UserLocation {
   lat: number;
   lng: number;
 }
+
+// Leaflet Map Component (loaded dynamically)
+const LeafletMap = ({ stations, userLocation, onStationSelect, selectedStation }: {
+  stations: Station[];
+  userLocation: UserLocation | null;
+  onStationSelect: (id: string) => void;
+  selectedStation: string | null;
+}) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+
+  useEffect(() => {
+    // Dynamically load Leaflet
+    const loadLeaflet = async () => {
+      if (typeof window === 'undefined' || !mapRef.current) return;
+      
+      // Load CSS
+      if (!document.querySelector('link[href*="leaflet.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      // Load JS
+      if (!(window as any).L) {
+        await new Promise<void>((resolve) => {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = () => resolve();
+          document.head.appendChild(script);
+        });
+      }
+
+      const L = (window as any).L;
+      if (!L || mapInstanceRef.current) return;
+
+      const center = userLocation 
+        ? [userLocation.lat, userLocation.lng] 
+        : [28.6139, 77.2090]; // Delhi default
+
+      mapInstanceRef.current = L.map(mapRef.current).setView(center, 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstanceRef.current);
+    };
+
+    loadLeaflet();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const L = (window as any).L;
+    if (!L || !mapInstanceRef.current) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    // Create marker icons
+    const createIcon = (color: string) => L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="
+        background: ${color};
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      "><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+      popupAnchor: [0, -12]
+    });
+
+    const greenIcon = createIcon('#22c55e');
+    const yellowIcon = createIcon('#eab308');
+    const redIcon = createIcon('#ef4444');
+
+    // Add station markers
+    stations.forEach(station => {
+      const icon = station.available_slots === 0 
+        ? redIcon 
+        : station.available_slots <= 2 
+          ? yellowIcon 
+          : greenIcon;
+
+      const marker = L.marker([station.latitude, station.longitude], { icon })
+        .addTo(mapInstanceRef.current)
+        .bindPopup(`
+          <div style="min-width: 200px; font-family: system-ui;">
+            <h3 style="margin: 0 0 4px; font-weight: 600; font-size: 14px;">${station.name}</h3>
+            <p style="margin: 0 0 8px; color: #666; font-size: 12px;">${station.address}</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <span style="background: ${station.available_slots > 0 ? '#dcfce7' : '#fecaca'}; color: ${station.available_slots > 0 ? '#16a34a' : '#dc2626'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">
+                ${station.available_slots}/${station.total_slots} Available
+              </span>
+              <span style="font-size: 12px; font-weight: 500;">₹${station.price_per_hour}/hr</span>
+            </div>
+            <button onclick="window.selectStation('${station.id}')" style="
+              width: 100%;
+              background: linear-gradient(135deg, #00d4aa, #0099ff);
+              color: white;
+              border: none;
+              padding: 8px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-weight: 500;
+              font-size: 12px;
+            ">View Details</button>
+          </div>
+        `);
+
+      marker.on('click', () => onStationSelect(station.id));
+      markersRef.current.push(marker);
+    });
+
+    // Add user location marker
+    if (userLocation) {
+      const userIcon = L.divIcon({
+        className: 'user-marker',
+        html: `<div style="
+          background: #3b82f6;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+        "></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      const userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+        .addTo(mapInstanceRef.current)
+        .bindPopup('<strong>Your Location</strong>');
+      
+      markersRef.current.push(userMarker);
+    }
+
+    // Setup global function for popup button
+    (window as any).selectStation = (id: string) => {
+      onStationSelect(id);
+      mapInstanceRef.current.closePopup();
+    };
+
+  }, [stations, userLocation, onStationSelect]);
+
+  // Pan to selected station
+  useEffect(() => {
+    if (!mapInstanceRef.current || !selectedStation) return;
+    const station = stations.find(s => s.id === selectedStation);
+    if (station) {
+      mapInstanceRef.current.setView([station.latitude, station.longitude], 15);
+    }
+  }, [selectedStation, stations]);
+
+  return (
+    <div 
+      ref={mapRef} 
+      className="w-full h-full rounded-lg"
+      style={{ minHeight: '500px', background: '#e5e7eb' }}
+    />
+  );
+};
 
 const EnhancedChargingStationMap = () => {
   const { user } = useAuth();
@@ -185,16 +361,6 @@ const EnhancedChargingStationMap = () => {
     window.open(`https://maps.google.com/maps?q=${station.latitude},${station.longitude}`, '_blank');
   };
 
-  const openMapView = (station?: Station) => {
-    if (station) {
-      window.open(`https://www.openstreetmap.org/?mlat=${station.latitude}&mlon=${station.longitude}#map=15/${station.latitude}/${station.longitude}`, '_blank');
-    } else if (userLocation) {
-      window.open(`https://www.openstreetmap.org/?mlat=${userLocation.lat}&mlon=${userLocation.lng}#map=13/${userLocation.lat}/${userLocation.lng}`, '_blank');
-    } else {
-      window.open(`https://www.openstreetmap.org/#map=12/28.6139/77.2090`, '_blank');
-    }
-  };
-
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -223,14 +389,14 @@ const EnhancedChargingStationMap = () => {
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               Filters
             </Button>
-            <Button onClick={() => openMapView()}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Map
+            <Button variant="outline" onClick={getUserLocation}>
+              <Navigation className="h-4 w-4 mr-2" />
+              My Location
             </Button>
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
               <div>
                 <label className="text-sm font-medium mb-2 block">Price Range</label>
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
@@ -268,82 +434,85 @@ const EnhancedChargingStationMap = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Location</label>
-                <Button variant="outline" className="w-full" onClick={getUserLocation}>
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Use My Location
-                </Button>
-              </div>
             </div>
           )}
         </Card>
 
-        {/* Station List */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-semibold">Nearby Stations</h3>
-          <Badge variant="secondary">{filteredStations.length} station{filteredStations.length !== 1 ? 's' : ''} found</Badge>
-        </div>
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Interactive Map */}
+          <Card className="h-[600px] overflow-hidden border border-border/50">
+            <LeafletMap
+              stations={filteredStations}
+              userLocation={userLocation}
+              onStationSelect={setSelectedStation}
+              selectedStation={selectedStation}
+            />
+          </Card>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredStations.length === 0 ? (
-            <Card className="p-6 text-center col-span-full">
-              <p className="text-muted-foreground">No stations found.</p>
-              <Button variant="outline" className="mt-2" onClick={() => { setSearchQuery(""); setPriceFilter("all"); setAvailabilityFilter("all"); }}>
-                Clear Filters
-              </Button>
-            </Card>
-          ) : (
-            filteredStations.map((station) => (
-              <Card key={station.id} className={`p-6 cursor-pointer transition-all hover:shadow-lg border ${selectedStation === station.id ? 'border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]' : 'border-border/50 hover:border-primary/50'}`} onClick={() => setSelectedStation(station.id)}>
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Zap className="h-5 w-5 text-primary" />
+          {/* Station List */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Stations</h3>
+              <Badge variant="secondary">{filteredStations.length} found</Badge>
+            </div>
+
+            <div className="space-y-4 max-h-[550px] overflow-y-auto pr-2">
+              {filteredStations.length === 0 ? (
+                <Card className="p-6 text-center">
+                  <p className="text-muted-foreground">No stations found.</p>
+                  <Button variant="outline" className="mt-2" onClick={() => { setSearchQuery(""); setPriceFilter("all"); setAvailabilityFilter("all"); }}>
+                    Clear Filters
+                  </Button>
+                </Card>
+              ) : (
+                filteredStations.map((station) => (
+                  <Card 
+                    key={station.id} 
+                    className={`p-4 cursor-pointer transition-all hover:shadow-lg border ${selectedStation === station.id ? 'border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]' : 'border-border/50 hover:border-primary/50'}`} 
+                    onClick={() => setSelectedStation(station.id)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Zap className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">{station.name}</h4>
+                          <p className="text-sm text-muted-foreground flex items-center">
+                            <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                            <span className="truncate max-w-[200px]">{station.address}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={getStatusColor(station.available_slots) as any}>{getStatusText(station.available_slots)}</Badge>
                     </div>
-                    <div>
-                      <h4 className="font-semibold">{station.name}</h4>
-                      <p className="text-sm text-muted-foreground flex items-center"><MapPin className="h-3 w-3 mr-1" />{station.address}</p>
+
+                    <div className="grid grid-cols-3 gap-2 mb-3 text-center text-sm">
+                      <div className="p-2 rounded bg-muted/50">
+                        <div className="font-bold text-primary">{station.available_slots}/{station.total_slots}</div>
+                        <div className="text-xs text-muted-foreground">Slots</div>
+                      </div>
+                      <div className="p-2 rounded bg-muted/50">
+                        <div className="font-bold text-electric-green">₹{station.price_per_hour}</div>
+                        <div className="text-xs text-muted-foreground">Per Hr</div>
+                      </div>
+                      <div className="p-2 rounded bg-muted/50">
+                        <div className="font-bold">{userLocation ? `${getStationDistance(station).toFixed(1)}km` : '--'}</div>
+                        <div className="text-xs text-muted-foreground">Away</div>
+                      </div>
                     </div>
-                  </div>
-                  <Badge variant={getStatusColor(station.available_slots) as any}>{getStatusText(station.available_slots)}</Badge>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                  <div className="p-2 rounded bg-muted/50">
-                    <div className="font-bold text-primary">{station.available_slots}/{station.total_slots}</div>
-                    <div className="text-xs text-muted-foreground">Available</div>
-                  </div>
-                  <div className="p-2 rounded bg-muted/50">
-                    <div className="font-bold text-electric-green">₹{station.price_per_hour}</div>
-                    <div className="text-xs text-muted-foreground">Per Hour</div>
-                  </div>
-                  <div className="p-2 rounded bg-muted/50">
-                    <div className="font-bold">{userLocation ? `${getStationDistance(station).toFixed(1)} km` : '--'}</div>
-                    <div className="text-xs text-muted-foreground">Distance</div>
-                  </div>
-                </div>
-
-                {station.charging_slots && station.charging_slots.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-1">
-                      {station.charging_slots.slice(0, 4).map((slot) => (
-                        <Badge key={slot.id} variant={slot.status === 'available' ? 'default' : 'secondary'} className={slot.status === 'available' ? 'bg-green-500/10 text-green-600 border-green-500/30' : ''}>
-                          {slot.connector_type}
-                        </Badge>
-                      ))}
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); handleReserve(station.id); }}>Reserve</Button>
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleNavigate(station); }}>
+                        <Navigation className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Button className="flex-1" onClick={(e) => { e.stopPropagation(); handleReserve(station.id); }}>Reserve</Button>
-                  <Button variant="outline" onClick={(e) => { e.stopPropagation(); handleNavigate(station); }}><Navigation className="h-4 w-4" /></Button>
-                  <Button variant="outline" onClick={(e) => { e.stopPropagation(); openMapView(station); }}><MapPin className="h-4 w-4" /></Button>
-                </div>
-              </Card>
-            ))
-          )}
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </section>
