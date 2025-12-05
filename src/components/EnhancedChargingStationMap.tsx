@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Navigation, Filter, Zap, Clock, Star, Search, SlidersHorizontal } from "lucide-react";
+import { MapPin, Navigation, Zap, Search, SlidersHorizontal, Battery, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import { useToast } from "@/hooks/use-toast";
 
 interface ChargingSlot {
@@ -36,16 +35,6 @@ interface UserLocation {
   lng: number;
 }
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '600px'
-};
-
-const defaultCenter = {
-  lat: 28.6139, // Delhi coordinates as default
-  lng: 77.2090
-};
-
 const EnhancedChargingStationMap = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -58,14 +47,11 @@ const EnhancedChargingStationMap = () => {
   const [sortBy, setSortBy] = useState("distance");
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [mapCenter, setMapCenter] = useState(defaultCenter);
-  const [infoWindowStation, setInfoWindowStation] = useState<Station | null>(null);
 
   useEffect(() => {
     fetchStations();
     getUserLocation();
     
-    // Set up real-time subscription for station updates
     const channel = supabase
       .channel('station-changes')
       .on('postgres_changes', {
@@ -90,22 +76,19 @@ const EnhancedChargingStationMap = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const location = {
+          setUserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          };
-          setUserLocation(location);
-          setMapCenter(location);
+          });
           toast({
             title: "Location found",
             description: "Showing nearby charging stations",
           });
         },
-        (error) => {
-          console.error('Error getting location:', error);
+        () => {
           toast({
             title: "Location unavailable",
-            description: "Using default location. Please enable location services.",
+            description: "Using default location.",
             variant: "destructive"
           });
         }
@@ -116,53 +99,30 @@ const EnhancedChargingStationMap = () => {
   const fetchStations = async () => {
     const { data, error } = await supabase
       .from('charging_stations')
-      .select(`
-        *,
-        charging_slots (
-          id,
-          slot_number,
-          status,
-          connector_type,
-          power_output_kw
-        )
-      `)
+      .select(`*, charging_slots (id, slot_number, status, connector_type, power_output_kw)`)
       .order('name');
     
-    if (error) {
-      console.error('Error fetching stations:', error);
-      return;
-    }
-    
-    setStations(data || []);
+    if (!error) setStations(data || []);
   };
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    // Haversine formula for distance calculation
-    const R = 6371; // Radius of the Earth in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
       Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   };
 
   const getStationDistance = (station: Station): number => {
     if (!userLocation) return 0;
-    return calculateDistance(
-      userLocation.lat,
-      userLocation.lng,
-      station.latitude,
-      station.longitude
-    );
+    return calculateDistance(userLocation.lat, userLocation.lng, station.latitude, station.longitude);
   };
 
   const filterAndSortStations = () => {
     let filtered = [...stations];
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(station =>
         station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,54 +130,38 @@ const EnhancedChargingStationMap = () => {
       );
     }
 
-    // Price filter
     if (priceFilter !== "all") {
       filtered = filtered.filter(station => {
         const price = station.price_per_hour;
-        switch (priceFilter) {
-          case "low": return price < 100;
-          case "medium": return price >= 100 && price < 150;
-          case "high": return price >= 150;
-          default: return true;
-        }
+        if (priceFilter === "low") return price < 100;
+        if (priceFilter === "medium") return price >= 100 && price < 150;
+        if (priceFilter === "high") return price >= 150;
+        return true;
       });
     }
 
-    // Availability filter
     if (availabilityFilter !== "all") {
       filtered = filtered.filter(station => {
-        switch (availabilityFilter) {
-          case "available": return station.available_slots > 0;
-          case "busy": return station.available_slots === 0;
-          case "limited": return station.available_slots > 0 && station.available_slots <= 2;
-          default: return true;
-        }
+        if (availabilityFilter === "available") return station.available_slots > 0;
+        if (availabilityFilter === "busy") return station.available_slots === 0;
+        if (availabilityFilter === "limited") return station.available_slots > 0 && station.available_slots <= 2;
+        return true;
       });
     }
 
-    // Sort
     filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "distance":
-          if (!userLocation) return 0;
-          return getStationDistance(a) - getStationDistance(b);
-        case "price-low":
-          return a.price_per_hour - b.price_per_hour;
-        case "price-high":
-          return b.price_per_hour - a.price_per_hour;
-        case "availability":
-          return b.available_slots - a.available_slots;
-        case "name":
-          return a.name.localeCompare(b.name);
-        default:
-          return 0;
-      }
+      if (sortBy === "distance" && userLocation) return getStationDistance(a) - getStationDistance(b);
+      if (sortBy === "price-low") return a.price_per_hour - b.price_per_hour;
+      if (sortBy === "price-high") return b.price_per_hour - a.price_per_hour;
+      if (sortBy === "availability") return b.available_slots - a.available_slots;
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      return 0;
     });
 
     setFilteredStations(filtered);
   };
 
-  const getStatusColor = (availableSlots: number, totalSlots: number) => {
+  const getStatusColor = (availableSlots: number) => {
     if (availableSlots === 0) return "destructive";
     if (availableSlots <= 2) return "warning";
     return "default";
@@ -234,21 +178,21 @@ const EnhancedChargingStationMap = () => {
       window.location.href = '/auth';
       return;
     }
-    const element = document.getElementById('booking-section');
-    element?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleNavigate = (station: Station) => {
     window.open(`https://maps.google.com/maps?q=${station.latitude},${station.longitude}`, '_blank');
   };
 
-  const getMarkerIcon = (station: Station) => {
-    if (station.available_slots === 0) {
-      return 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
-    } else if (station.available_slots <= 2) {
-      return 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+  const openMapView = (station?: Station) => {
+    if (station) {
+      window.open(`https://www.openstreetmap.org/?mlat=${station.latitude}&mlon=${station.longitude}#map=15/${station.latitude}/${station.longitude}`, '_blank');
+    } else if (userLocation) {
+      window.open(`https://www.openstreetmap.org/?mlat=${userLocation.lat}&mlon=${userLocation.lng}#map=13/${userLocation.lat}/${userLocation.lng}`, '_blank');
+    } else {
+      window.open(`https://www.openstreetmap.org/#map=12/28.6139/77.2090`, '_blank');
     }
-    return 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
   };
 
   return (
@@ -259,7 +203,7 @@ const EnhancedChargingStationMap = () => {
             Find <span className="bg-gradient-to-r from-primary to-electric-blue bg-clip-text text-transparent">Charging Stations</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover nearby charging stations with real-time availability and instant booking
+            Discover nearby charging stations with real-time availability
           </p>
         </div>
 
@@ -269,20 +213,19 @@ const EnhancedChargingStationMap = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search stations by name or location..."
+                placeholder="Search stations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
-
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:w-auto"
-            >
+            <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               Filters
+            </Button>
+            <Button onClick={() => openMapView()}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open Map
             </Button>
           </div>
 
@@ -291,9 +234,7 @@ const EnhancedChargingStationMap = () => {
               <div>
                 <label className="text-sm font-medium mb-2 block">Price Range</label>
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Prices</SelectItem>
                     <SelectItem value="low">Under ₹100/hr</SelectItem>
@@ -302,13 +243,10 @@ const EnhancedChargingStationMap = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <label className="text-sm font-medium mb-2 block">Availability</label>
                 <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Stations</SelectItem>
                     <SelectItem value="available">Available Now</SelectItem>
@@ -317,13 +255,10 @@ const EnhancedChargingStationMap = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <label className="text-sm font-medium mb-2 block">Sort By</label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="distance">Distance</SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
@@ -333,7 +268,6 @@ const EnhancedChargingStationMap = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <label className="text-sm font-medium mb-2 block">Location</label>
                 <Button variant="outline" className="w-full" onClick={getUserLocation}>
@@ -345,284 +279,71 @@ const EnhancedChargingStationMap = () => {
           )}
         </Card>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Google Map */}
-          <div className="relative">
-            <Card className="h-[600px] bg-card/50 backdrop-blur-sm border border-border/50 overflow-hidden p-0">
-              <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={mapCenter}
-                  zoom={12}
-                  options={{
-                    streetViewControl: false,
-                    mapTypeControl: false,
-                    fullscreenControl: false,
-                  }}
-                >
-                  {/* User location marker */}
-                  {userLocation && (
-                    <Marker
-                      position={userLocation}
-                      icon={{
-                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                      }}
-                      title="Your Location"
-                    />
-                  )}
+        {/* Station List */}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-semibold">Nearby Stations</h3>
+          <Badge variant="secondary">{filteredStations.length} station{filteredStations.length !== 1 ? 's' : ''} found</Badge>
+        </div>
 
-                  {/* Station markers */}
-                  {filteredStations.map((station) => (
-                    <Marker
-                      key={station.id}
-                      position={{ lat: station.latitude, lng: station.longitude }}
-                      icon={{
-                        url: getMarkerIcon(station)
-                      }}
-                      onClick={() => setInfoWindowStation(station)}
-                      title={station.name}
-                    />
-                  ))}
-
-                  {/* Info Window */}
-                  {infoWindowStation && (
-                    <InfoWindow
-                      position={{
-                        lat: infoWindowStation.latitude,
-                        lng: infoWindowStation.longitude
-                      }}
-                      onCloseClick={() => setInfoWindowStation(null)}
-                    >
-                      <div className="p-2 min-w-[200px]">
-                        <h3 className="font-semibold text-sm mb-1">{infoWindowStation.name}</h3>
-                        <p className="text-xs text-gray-600 mb-2">{infoWindowStation.address}</p>
-                        <div className="flex gap-2 text-xs mb-2">
-                          <span className="font-medium text-green-600">
-                            {infoWindowStation.available_slots}/{infoWindowStation.total_slots} Charging Points
-                          </span>
-                          <span>₹{infoWindowStation.price_per_hour}/hr</span>
-                        </div>
-                        {infoWindowStation.charging_slots && infoWindowStation.charging_slots.length > 0 && (
-                          <div className="mb-2">
-                            <p className="text-xs font-medium mb-1">Charging Points:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {infoWindowStation.charging_slots.slice(0, 4).map((slot) => (
-                                <span 
-                                  key={slot.id} 
-                                  className={`text-xs px-1.5 py-0.5 rounded ${
-                                    slot.status === 'available' 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-red-100 text-red-700'
-                                  }`}
-                                >
-                                  {slot.connector_type}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <Button
-                          size="sm"
-                          className="w-full text-xs"
-                          onClick={() => {
-                            setSelectedStation(infoWindowStation.id);
-                            setInfoWindowStation(null);
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </InfoWindow>
-                  )}
-                </GoogleMap>
-              </LoadScript>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredStations.length === 0 ? (
+            <Card className="p-6 text-center col-span-full">
+              <p className="text-muted-foreground">No stations found.</p>
+              <Button variant="outline" className="mt-2" onClick={() => { setSearchQuery(""); setPriceFilter("all"); setAvailabilityFilter("all"); }}>
+                Clear Filters
+              </Button>
             </Card>
-          </div>
-
-          {/* Station List */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-semibold">
-                {searchQuery ? 'Search Results' : 'Nearby Stations'}
-              </h3>
-              <Badge variant="secondary" className="text-sm">
-                {filteredStations.length} station{filteredStations.length !== 1 ? 's' : ''} found
-              </Badge>
-            </div>
-
-            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-              {filteredStations.length === 0 ? (
-                <Card className="p-6 text-center">
-                  <p className="text-muted-foreground">No stations found matching your criteria.</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-2"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setPriceFilter("all");
-                      setAvailabilityFilter("all");
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                </Card>
-              ) : (
-                filteredStations.map((station) => (
-                  <Card 
-                    key={station.id}
-                    className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-lg border ${
-                      selectedStation === station.id
-                        ? 'border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]' 
-                        : 'border-border/50 hover:border-primary/50'
-                    }`}
-                    onClick={() => {
-                      setSelectedStation(selectedStation === station.id ? null : station.id);
-                      setMapCenter({ lat: station.latitude, lng: station.longitude });
-                    }}
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg mb-1">{station.name}</h4>
-                        <p className="text-muted-foreground text-sm mb-2">{station.address}</p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {userLocation ? getStationDistance(station).toFixed(1) : '—'} km
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-electric-amber text-electric-amber" />
-                            4.{Math.floor(Math.random() * 9) + 1}
-                          </span>
-                        </div>
-                      </div>
-                      <Badge 
-                        variant={getStatusColor(station.available_slots, station.total_slots) as any}
-                        className="ml-4"
-                      >
-                        {getStatusText(station.available_slots)}
-                      </Badge>
+          ) : (
+            filteredStations.map((station) => (
+              <Card key={station.id} className={`p-6 cursor-pointer transition-all hover:shadow-lg border ${selectedStation === station.id ? 'border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]' : 'border-border/50 hover:border-primary/50'}`} onClick={() => setSelectedStation(station.id)}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-primary" />
                     </div>
-
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                        <div className="text-lg font-semibold text-primary">
-                          {station.available_slots}/{station.total_slots}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Available</div>
-                      </div>
-                      <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                        <div className="text-lg font-semibold text-electric-blue">
-                          150 kW
-                        </div>
-                        <div className="text-xs text-muted-foreground">Max Speed</div>
-                      </div>
-                      <div className="text-center p-3 bg-secondary/50 rounded-lg">
-                        <div className="text-lg font-semibold text-electric-green">
-                          ₹{station.price_per_hour}/hr
-                        </div>
-                        <div className="text-xs text-muted-foreground">Pricing</div>
-                      </div>
+                    <div>
+                      <h4 className="font-semibold">{station.name}</h4>
+                      <p className="text-sm text-muted-foreground flex items-center"><MapPin className="h-3 w-3 mr-1" />{station.address}</p>
                     </div>
+                  </div>
+                  <Badge variant={getStatusColor(station.available_slots) as any}>{getStatusText(station.available_slots)}</Badge>
+                </div>
 
-                    {/* Amenities */}
-                    {station.amenities && station.amenities.length > 0 && (
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-1">
-                          {station.amenities.slice(0, 3).map((amenity, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {amenity}
-                            </Badge>
-                          ))}
-                          {station.amenities.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{station.amenities.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                  <div className="p-2 rounded bg-muted/50">
+                    <div className="font-bold text-primary">{station.available_slots}/{station.total_slots}</div>
+                    <div className="text-xs text-muted-foreground">Available</div>
+                  </div>
+                  <div className="p-2 rounded bg-muted/50">
+                    <div className="font-bold text-electric-green">₹{station.price_per_hour}</div>
+                    <div className="text-xs text-muted-foreground">Per Hour</div>
+                  </div>
+                  <div className="p-2 rounded bg-muted/50">
+                    <div className="font-bold">{userLocation ? `${getStationDistance(station).toFixed(1)} km` : '--'}</div>
+                    <div className="text-xs text-muted-foreground">Distance</div>
+                  </div>
+                </div>
 
-                    {/* Individual Charging Points */}
-                    {station.charging_slots && station.charging_slots.length > 0 && (
-                      <div className="mb-4 p-3 bg-muted/30 rounded-lg">
-                        <div className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-primary" />
-                          Charging Points Available
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {station.charging_slots.map((slot) => (
-                            <div 
-                              key={slot.id}
-                              className={`flex items-center justify-between p-2 rounded-lg border ${
-                                slot.status === 'available' 
-                                  ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
-                                  : 'bg-muted border-border'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Zap className={`h-3 w-3 ${
-                                  slot.status === 'available' ? 'text-green-600' : 'text-muted-foreground'
-                                }`} />
-                                <div className="text-xs">
-                                  <div className="font-medium">Port {slot.slot_number}</div>
-                                  <div className="text-muted-foreground">{slot.connector_type} • {slot.power_output_kw}kW</div>
-                                </div>
-                              </div>
-                              <Badge 
-                                variant={slot.status === 'available' ? 'default' : 'secondary'}
-                                className="text-xs"
-                              >
-                                {slot.status === 'available' ? '✓' : 'Busy'}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            DC Fast
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            Est. 35min charge
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="flex-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleNavigate(station);
-                          }}
-                        >
-                          <Navigation className="h-4 w-4 mr-2" />
-                          Navigate
-                        </Button>
-                        <Button 
-                          size="sm"
-                          className="flex-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleReserve(station.id);
-                          }}
-                          disabled={station.available_slots === 0}
-                        >
-                          <Zap className="h-4 w-4 mr-2" />
-                          Reserve
-                        </Button>
-                      </div>
+                {station.charging_slots && station.charging_slots.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-1">
+                      {station.charging_slots.slice(0, 4).map((slot) => (
+                        <Badge key={slot.id} variant={slot.status === 'available' ? 'default' : 'secondary'} className={slot.status === 'available' ? 'bg-green-500/10 text-green-600 border-green-500/30' : ''}>
+                          {slot.connector_type}
+                        </Badge>
+                      ))}
                     </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={(e) => { e.stopPropagation(); handleReserve(station.id); }}>Reserve</Button>
+                  <Button variant="outline" onClick={(e) => { e.stopPropagation(); handleNavigate(station); }}><Navigation className="h-4 w-4" /></Button>
+                  <Button variant="outline" onClick={(e) => { e.stopPropagation(); openMapView(station); }}><MapPin className="h-4 w-4" /></Button>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </section>
