@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AdminAuth from "./pages/AdminAuth";
 import Dashboard from "./pages/Dashboard";
+import StationOwnerDashboard from "./pages/StationOwnerDashboard";
 import AdminPanel from "./components/AdminPanel";
 import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
@@ -23,7 +25,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/station-owner" element={<StationOwnerDashboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

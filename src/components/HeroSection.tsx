@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { MapPin, Zap, Clock, Smartphone, User, LogIn } from "lucide-react";
+import { MapPin, Zap, Clock, Smartphone, User, LogIn, Building2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-charging-station.jpg";
@@ -48,6 +48,15 @@ const HeroSection = () => {
               </>
             ) : (
               <>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/admin-auth')}
+                  className="flex items-center gap-2 text-muted-foreground"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Station Owner
+                </Button>
                 <Button 
                   variant="electric" 
                   size="sm"

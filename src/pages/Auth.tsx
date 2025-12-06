@@ -159,6 +159,12 @@ const Auth = () => {
                 <span>Secure</span>
               </div>
             </div>
+
+            <div className="mt-6 text-center border-t pt-4">
+              <a href="/admin-auth" className="text-sm text-primary hover:underline">
+                Are you a station owner? Register here →
+              </a>
+            </div>
           </CardContent>
         </Card>
       </div>
