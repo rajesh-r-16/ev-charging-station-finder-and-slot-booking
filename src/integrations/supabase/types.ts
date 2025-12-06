@@ -185,6 +185,7 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          owner_user_id: string | null
           price_per_hour: number
           total_slots: number
         }
@@ -197,6 +198,7 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          owner_user_id?: string | null
           price_per_hour: number
           total_slots?: number
         }
@@ -209,6 +211,7 @@ export type Database = {
           latitude?: number
           longitude?: number
           name?: string
+          owner_user_id?: string | null
           price_per_hour?: number
           total_slots?: number
         }
@@ -738,6 +741,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       v2g_enrollments: {
         Row: {
           available_capacity_kwh: number
@@ -971,10 +1004,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "station_owner" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1101,6 +1140,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "station_owner", "user"],
+    },
   },
 } as const
