@@ -157,8 +157,7 @@ const HeroSection = () => {
           <div 
             className="flex flex-col items-center p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 cursor-pointer hover:bg-card/70 transition-all hover:scale-105"
             onClick={() => {
-              const mapSection = document.querySelector('#booking-section')?.previousElementSibling;
-              mapSection?.scrollIntoView({ behavior: 'smooth' });
+              document.getElementById('live-charging-dashboard')?.scrollIntoView({ behavior: 'smooth' });
             }}
           >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-electric-green to-electric-amber flex items-center justify-center mb-4">

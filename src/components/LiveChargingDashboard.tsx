@@ -140,7 +140,7 @@ const LiveChargingDashboard = () => {
   }
 
   return (
-    <section className="py-8 px-4 bg-background">
+    <section id="live-charging-dashboard" className="py-8 px-4 bg-background">
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>

@@ -43,7 +43,27 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No phone verification in progress");
     }
 
-    const storedOTP = storedToken.replace("PHONE_OTP:", "");
+    // Parse stored OTP and expiry
+    const parts = storedToken.split(":");
+    const storedOTP = parts[1];
+    const expiry = parts[2] ? new Date(parts[2]) : null;
+
+    // Check if OTP has expired
+    if (expiry && new Date() > expiry) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "OTP has expired. Please request a new one." 
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
 
     // Verify OTP
     if (storedOTP !== otp) {
