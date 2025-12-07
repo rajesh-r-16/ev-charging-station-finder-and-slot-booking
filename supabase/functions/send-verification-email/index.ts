@@ -13,6 +13,7 @@ const corsHeaders = {
 interface VerificationEmailRequest {
   email: string;
   user_id: string;
+  origin_url: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -21,7 +22,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, user_id }: VerificationEmailRequest = await req.json();
+    const { email, user_id, origin_url }: VerificationEmailRequest = await req.json();
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -30,7 +31,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate verification token
     const verificationToken = crypto.randomUUID();
-    const verificationUrl = `${supabaseUrl.replace('.supabase.co', '')}/verify-email?token=${verificationToken}`;
+    
+    // Use the frontend origin URL for verification link
+    const baseUrl = origin_url || "https://evcharger.lovable.app";
+    const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
 
     // Update profile with verification token
     const { error: updateError } = await supabase
@@ -43,7 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw updateError;
     }
 
-    // Send verification email
+    // Send verification email using Resend
     const emailResponse = await resend.emails.send({
       from: "EVCharger <onboarding@resend.dev>",
       to: [email],

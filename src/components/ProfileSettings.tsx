@@ -130,7 +130,8 @@ const ProfileSettings = () => {
       const { error } = await supabase.functions.invoke('send-verification-email', {
         body: {
           email: user.email,
-          user_id: user.id
+          user_id: user.id,
+          origin_url: window.location.origin
         }
       });
 
