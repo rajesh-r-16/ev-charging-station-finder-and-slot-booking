@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Battery, Zap, MapPin, RefreshCw } from "lucide-react";
+import { Battery, Zap, MapPin, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ChargingSlot {
@@ -23,11 +24,14 @@ interface Station {
   charging_slots: ChargingSlot[];
 }
 
+const INITIAL_DISPLAY_COUNT = 4;
+
 const LiveChargingDashboard = () => {
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const fetchStations = async () => {
     try {
@@ -193,7 +197,7 @@ const LiveChargingDashboard = () => {
 
         {/* Stations Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {stations.map((station) => (
+          {(showAll ? stations : stations.slice(0, INITIAL_DISPLAY_COUNT)).map((station) => (
             <Card key={station.id} className="border-border/50 hover:border-primary/50 transition-colors">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -242,6 +246,29 @@ const LiveChargingDashboard = () => {
             </Card>
           ))}
         </div>
+
+        {/* View More Button */}
+        {stations.length > INITIAL_DISPLAY_COUNT && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowAll(!showAll)}
+              className="flex items-center gap-2"
+            >
+              {showAll ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  View More ({stations.length - INITIAL_DISPLAY_COUNT} more stations)
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );
