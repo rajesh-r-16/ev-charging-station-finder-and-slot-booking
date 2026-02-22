@@ -70,20 +70,23 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        float: {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "25%": { transform: "translate(30px, -20px) scale(1.05)" },
+          "50%": { transform: "translate(-20px, 15px) scale(0.95)" },
+          "75%": { transform: "translate(15px, 25px) scale(1.02)" },
+        },
+        slowDrift: {
+          "0%, 100%": { transform: "scale(1.1) translate(0, 0)" },
+          "33%": { transform: "scale(1.15) translate(-10px, -5px)" },
+          "66%": { transform: "scale(1.12) translate(10px, 5px)" },
         },
       },
       animation: {
