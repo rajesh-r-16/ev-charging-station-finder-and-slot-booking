@@ -97,7 +97,7 @@ const HeroSection = () => {
       
       {/* Hero image with 3D parallax effect - more visible */}
       <div 
-        className="absolute inset-0 opacity-40 animate-[slowShake_6s_ease-in-out_infinite] transition-transform duration-700 ease-out"
+        className="absolute inset-0 opacity-40 animate-[slowShake_15s_ease-in-out_infinite] transition-transform duration-1000 ease-out"
         style={{
           transform: `scale(1.08) translate3d(${mousePos.x * -5}px, ${mousePos.y * -5}px, 0)`,
         }}

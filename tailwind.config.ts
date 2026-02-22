@@ -85,10 +85,10 @@ export default {
         },
         slowShake: {
           "0%, 100%": { transform: "scale(1.08) translate(0, 0)" },
-          "20%": { transform: "scale(1.08) translate(-3px, 2px)" },
-          "40%": { transform: "scale(1.08) translate(2px, -3px)" },
-          "60%": { transform: "scale(1.08) translate(-2px, -1px)" },
-          "80%": { transform: "scale(1.08) translate(3px, 1px)" },
+          "20%": { transform: "scale(1.08) translate(-2px, 1px)" },
+          "40%": { transform: "scale(1.08) translate(1px, -2px)" },
+          "60%": { transform: "scale(1.08) translate(-1px, -1px)" },
+          "80%": { transform: "scale(1.08) translate(2px, 1px)" },
         },
       },
       animation: {
