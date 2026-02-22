@@ -81,12 +81,12 @@ const HeroSection = () => {
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-secondary/80" />
       
-      {/* Hero image with overlay */}
-      <div className="absolute inset-0 opacity-20">
+      {/* Hero image with overlay - animated */}
+      <div className="absolute inset-0 opacity-20 animate-[slowDrift_20s_ease-in-out_infinite]">
         <img 
           src={heroImage} 
           alt="EV Charging Station" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
       </div>
@@ -187,8 +187,9 @@ const HeroSection = () => {
       </div>
 
       {/* Animated background elements */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-electric-blue/10 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-electric-blue/10 rounded-full blur-3xl animate-[float_10s_ease-in-out_infinite_reverse]" />
+      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-electric-green/5 rounded-full blur-3xl animate-[float_12s_ease-in-out_infinite_2s]" />
     </section>
   );
 };
