@@ -83,10 +83,12 @@ export default {
           "50%": { transform: "translate(-20px, 15px) scale(0.95)" },
           "75%": { transform: "translate(15px, 25px) scale(1.02)" },
         },
-        slowDrift: {
-          "0%, 100%": { transform: "scale(1.1) translate(0, 0)" },
-          "33%": { transform: "scale(1.15) translate(-10px, -5px)" },
-          "66%": { transform: "scale(1.12) translate(10px, 5px)" },
+        slowShake: {
+          "0%, 100%": { transform: "scale(1.08) translate(0, 0)" },
+          "20%": { transform: "scale(1.08) translate(-3px, 2px)" },
+          "40%": { transform: "scale(1.08) translate(2px, -3px)" },
+          "60%": { transform: "scale(1.08) translate(-2px, -1px)" },
+          "80%": { transform: "scale(1.08) translate(3px, 1px)" },
         },
       },
       animation: {
