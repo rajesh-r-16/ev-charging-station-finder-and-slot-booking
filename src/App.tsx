@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import StationOwnerDashboard from "./pages/StationOwnerDashboard";
 import AdminPanel from "./components/AdminPanel";
 import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/station-owner" element={<StationOwnerDashboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -7,12 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Shield, MapPin, Clock } from 'lucide-react';
+import { Building2, Shield, MapPin, Clock, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const AdminAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   const { user, signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -54,7 +58,6 @@ const AdminAuth = () => {
 
     const { error } = await signIn(email, password);
     if (!error) {
-      // Check role after sign in
       const { data: { user: signedInUser } } = await supabase.auth.getUser();
       if (signedInUser) {
         const { data: roleData } = await supabase
@@ -87,46 +90,112 @@ const AdminAuth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
     const fullName = formData.get('fullName') as string;
-    const businessName = formData.get('businessName') as string;
     const phone = formData.get('phone') as string;
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
 
     const { error } = await signUp(email, password, fullName);
     
     if (!error) {
-      // Wait for auth state to update
-      const { data: { user: newUser } } = await supabase.auth.getUser();
+      setSignUpSuccess(true);
       
+      // Try to request station_owner role after signup
+      const { data: { user: newUser } } = await supabase.auth.getUser();
       if (newUser) {
-        // Request station_owner role
-        const { error: roleError } = await supabase
+        await supabase
           .from('user_roles')
           .insert({
             user_id: newUser.id,
             role: 'station_owner',
-            approved: false
+            approved: false,
           });
 
-        if (roleError) {
-          console.error('Error requesting role:', roleError);
-        }
-
-        // Update profile with business info
         await supabase
           .from('profiles')
           .update({ phone })
           .eq('user_id', newUser.id);
-
-        toast({
-          title: "Registration Submitted",
-          description: "Your station owner application has been submitted for review. You'll be notified once approved.",
-        });
-        
-        setPendingApproval(true);
       }
     }
     setIsLoading(false);
   };
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setResetSent(true);
+      toast({ title: "Reset Link Sent", description: "Check your email for a password reset link." });
+    }
+    setIsLoading(false);
+  };
+
+  if (signUpSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-0 shadow-xl bg-card/95 backdrop-blur-sm">
+          <CardHeader className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-electric-green/10 rounded-full mb-4 mx-auto">
+              <Mail className="h-8 w-8 text-electric-green" />
+            </div>
+            <CardTitle>Verify Your Email</CardTitle>
+            <CardDescription>
+              We've sent a verification link to your email. Please verify your email first, then your station owner application will be reviewed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground mb-2">Next steps:</p>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                  Verify your email by clicking the link
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                  Our team reviews your application (24-48 hrs)
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                  Start managing your charging stations
+                </li>
+              </ul>
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => setSignUpSuccess(false)}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (pendingApproval) {
     return (
@@ -164,6 +233,69 @@ const AdminAuth = () => {
             </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+              <Building2 className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-electric-blue bg-clip-text text-transparent">
+              Station Owner Portal
+            </h1>
+          </div>
+          <Card className="border-0 shadow-xl bg-card/95 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <CardTitle>Reset Password</CardTitle>
+              <CardDescription>
+                {resetSent ? "Check your email for a reset link" : "Enter your email to receive a reset link"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {resetSent ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-electric-green/10 rounded-full">
+                      <Mail className="h-8 w-8 text-electric-green" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    If an account exists with that email, you'll receive a password reset link shortly.
+                  </p>
+                  <Button variant="outline" className="w-full" onClick={() => { setShowForgotPassword(false); setResetSent(false); }}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sign In
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="forgot-email">Email</Label>
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                  <Button type="button" variant="ghost" className="w-full" onClick={() => setShowForgotPassword(false)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sign In
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -207,7 +339,16 @@ const AdminAuth = () => {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <Input
                       id="signin-password"
                       name="password"
@@ -227,59 +368,27 @@ const AdminAuth = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      name="fullName"
-                      type="text"
-                      placeholder="Your full name"
-                      required
-                      className="bg-background/50"
-                    />
+                    <Input id="signup-name" name="fullName" type="text" placeholder="Your full name" required className="bg-background/50" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="signup-business">Business Name</Label>
-                    <Input
-                      id="signup-business"
-                      name="businessName"
-                      type="text"
-                      placeholder="Your charging business name"
-                      required
-                      className="bg-background/50"
-                    />
+                    <Input id="signup-business" name="businessName" type="text" placeholder="Your charging business name" required className="bg-background/50" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      name="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      required
-                      className="bg-background/50"
-                    />
+                    <Input id="signup-email" name="email" type="email" placeholder="your@email.com" required className="bg-background/50" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="signup-phone">Phone Number</Label>
-                    <Input
-                      id="signup-phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="+91 XXXXX XXXXX"
-                      required
-                      className="bg-background/50"
-                    />
+                    <Input id="signup-phone" name="phone" type="tel" placeholder="+91 XXXXX XXXXX" required className="bg-background/50" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      name="password"
-                      type="password"
-                      placeholder="••••••••"
-                      required
-                      minLength={6}
-                      className="bg-background/50"
-                    />
+                    <Input id="signup-password" name="password" type="password" placeholder="••••••••" required minLength={6} className="bg-background/50" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                    <Input id="signup-confirm-password" name="confirmPassword" type="password" placeholder="••••••••" required minLength={6} className="bg-background/50" />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Submitting..." : "Apply as Station Owner"}
