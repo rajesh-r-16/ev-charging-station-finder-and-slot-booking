@@ -311,6 +311,25 @@ const AdminPanel = () => {
     );
   }
 
+  if (isAdmin === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Verifying access…</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-6 text-center max-w-md">
+          <p className="text-muted-foreground mb-4">Access denied. Admin privileges required.</p>
+          <Button onClick={() => window.location.href = '/'}>Go Home</Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
