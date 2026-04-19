@@ -10,7 +10,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.calculate-route]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-v2v-listing]
 verify_jwt = true

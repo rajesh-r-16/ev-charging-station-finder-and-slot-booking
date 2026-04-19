@@ -39,6 +39,7 @@ interface DashboardStats {
 
 const AdminPanel = () => {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalStations: 0,
