@@ -66,9 +66,26 @@ const AdminPanel = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    const verifyAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role, approved')
+        .eq('user_id', user.id)
+        .eq('approved', true)
+        .eq('role', 'admin')
+        .maybeSingle();
+      if (error || !data) {
+        setIsAdmin(false);
+        return;
+      }
+      setIsAdmin(true);
       fetchDashboardData();
-    }
+    };
+    verifyAdmin();
   }, [user]);
 
   const fetchDashboardData = async () => {
