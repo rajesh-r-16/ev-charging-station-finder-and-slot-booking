@@ -39,6 +39,7 @@ interface DashboardStats {
 
 const AdminPanel = () => {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalStations: 0,
@@ -65,9 +66,26 @@ const AdminPanel = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    const verifyAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role, approved')
+        .eq('user_id', user.id)
+        .eq('approved', true)
+        .eq('role', 'admin')
+        .maybeSingle();
+      if (error || !data) {
+        setIsAdmin(false);
+        return;
+      }
+      setIsAdmin(true);
       fetchDashboardData();
-    }
+    };
+    verifyAdmin();
   }, [user]);
 
   const fetchDashboardData = async () => {
@@ -288,6 +306,25 @@ const AdminPanel = () => {
         <Card className="p-6 text-center">
           <p className="text-muted-foreground mb-4">Please sign in to access the admin panel.</p>
           <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isAdmin === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Verifying access…</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-6 text-center max-w-md">
+          <p className="text-muted-foreground mb-4">Access denied. Admin privileges required.</p>
+          <Button onClick={() => window.location.href = '/'}>Go Home</Button>
         </Card>
       </div>
     );

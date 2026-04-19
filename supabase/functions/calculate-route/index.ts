@@ -12,18 +12,54 @@ serve(async (req) => {
   }
 
   try {
-    const { startLocation, endLocation, currentSoc, targetSoc, optimizationModes } = await req.json();
-    
-    console.log('Calculating routes with AI:', { startLocation, endLocation, currentSoc, targetSoc, optimizationModes });
+    // Authenticate the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = await req.json();
+    const { startLocation, endLocation, currentSoc, targetSoc, optimizationModes } = body ?? {};
+
+    // Basic input validation
+    const isValidString = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.length <= 300;
+    const isValidSoc = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
+    const isValidModes = (v: unknown) =>
+      Array.isArray(v) && v.length > 0 && v.length <= 10 && v.every((m) => typeof m === 'string' && m.length <= 50);
+
+    if (!isValidString(startLocation) || !isValidString(endLocation) || !isValidSoc(currentSoc) || !isValidSoc(targetSoc) || !isValidModes(optimizationModes)) {
+      return new Response(JSON.stringify({ error: 'Invalid input' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Calculating routes with AI for user:', user.id);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     // Fetch nearby charging stations and V2V listings
     const { data: stations } = await supabase
