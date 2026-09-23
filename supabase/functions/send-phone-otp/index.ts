@@ -96,7 +96,9 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "OTP sent (demo mode). SMS delivery is not configured; contact an administrator."
+          message: "OTP sent (demo mode - check console or use the code shown)",
+          demo_mode: true,
+          demo_otp: otp // Only for demo - remove in production
         }),
         {
           status: 200,

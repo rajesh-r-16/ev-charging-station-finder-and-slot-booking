@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { friendlyAuthError } from '@/lib/authValidation';
 
 interface AuthContextType {
   user: User | null;
@@ -36,15 +35,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up listener FIRST, then fetch initial session
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -56,20 +56,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
-
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: { full_name: fullName },
+        data: {
+          full_name: fullName,
+        },
       },
     });
 
     if (error) {
       toast({
         title: "Sign Up Error",
-        description: friendlyAuthError(error.message),
+        description: error.message,
         variant: "destructive",
       });
     } else {
@@ -83,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -91,61 +93,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) {
       toast({
         title: "Sign In Error",
-        description: friendlyAuthError(error.message),
+        description: error.message,
         variant: "destructive",
       });
-      return { error };
-    }
-
-    // Block sign-in if email isn't verified
-    if (data.user && !data.user.email_confirmed_at) {
-      await supabase.auth.signOut();
-      const verifyError = { message: "Email not confirmed" };
+    } else {
       toast({
-        title: "Email Not Verified",
-        description: friendlyAuthError(verifyError.message),
-        variant: "destructive",
+        title: "Welcome Back!",
+        description: "You have been successfully signed in.",
       });
-      return { error: verifyError };
     }
 
-    toast({
-      title: "Welcome Back!",
-      description: "You have been successfully signed in.",
-    });
-
-    return { error: null };
+    return { error };
   };
 
   const signOut = async () => {
-    try {
-      // Global sign-out invalidates all sessions for this user
-      await supabase.auth.signOut({ scope: 'global' });
-    } catch (err) {
-      // Ignore — we'll still clear local state below
-    }
-
-    // Defensive: clear any lingering Supabase auth keys from storage
-    try {
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('sb-') || key.includes('supabase.auth')) {
-          localStorage.removeItem(key);
-        }
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Sign Out Error",
+        description: error.message,
+        variant: "destructive",
       });
-    } catch {
-      // localStorage might be unavailable; ignore
+    } else {
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
     }
-
-    setUser(null);
-    setSession(null);
-
-    toast({
-      title: "Signed Out",
-      description: "You have been successfully signed out.",
-    });
   };
 
-  const value = { user, session, loading, signUp, signIn, signOut };
+  const value = {
+    user,
+    session,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
