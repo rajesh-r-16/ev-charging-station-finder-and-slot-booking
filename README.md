@@ -3,6 +3,9 @@
 A modern web-based **Electric Vehicle (EV) Charging Station Finder and Slot Booking Application** that helps EV users discover charging stations, view station information, locate stations on an interactive map, and book charging slots conveniently.
 
 The application is designed to simplify the EV charging experience by bringing **station discovery, location-based search, charging information, and slot booking** into a single platform.
+## 🌐 Live Demo
+
+[🚗 Open EV Charging Station Finder](https://ev-charging-station-finder.lovable.app)
 
 ## 🔗 Project Links
 
