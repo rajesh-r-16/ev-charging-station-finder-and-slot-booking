@@ -11,7 +11,7 @@ The application is designed to simplify the EV charging experience by bringing *
 
 <p align="center">
 
-<a href="YOUR_WEBSITE_URL">
+<a href="https://ev-charging-station-finder-and-slot-booking.lovable.app">
   <img src="https://img.shields.io/badge/🌐%20Live%20Demo-Visit%20Website-blue?style=for-the-badge" />
 </a>
 
